@@ -21,14 +21,13 @@ export function AddClientModal({ onClose }: AddClientModalProps) {
     if (!formRef.current) return;
     setLoading(true);
     setError("");
-    try {
-      const result = await createClientAction(new FormData(formRef.current));
+    const result = await createClientAction(new FormData(formRef.current));
+    setLoading(false);
+    if (!result.success) {
+      setError(result.error);
+    } else {
       setTempPassword(result.tempPassword);
       setStep("success");
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
     }
   }
 
