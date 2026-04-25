@@ -45,6 +45,9 @@ export default async function ClientsPage() {
                       <div className="text-[12px] text-[#1B3FEE] font-medium mt-0.5 truncate">
                         {project?.name ?? "No active project"}
                       </div>
+                      {client.email && (
+                        <div className="text-[11px] text-[#94a3b8] truncate">{client.email}</div>
+                      )}
                     </div>
                     <ExternalLink className="w-4 h-4 text-[#94a3b8] flex-shrink-0 mt-0.5" />
                   </div>
