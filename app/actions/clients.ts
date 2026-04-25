@@ -25,8 +25,12 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
 
   const admin = createAdminClient();
 
-  // 1. Create Supabase Auth user — the on_auth_user_created trigger automatically
-  //    inserts the profiles row using user_metadata, so we must NOT insert it again.
+  // 1. Try to create the Supabase Auth user.
+  //    The on_auth_user_created trigger auto-inserts the profiles row from user_metadata,
+  //    so we must NOT insert it manually.
+  let userId: string;
+  let isExistingUser = false;
+
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email,
     password: tempPassword,
@@ -35,37 +39,63 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
   });
 
   if (authError) {
-    if (authError.message.toLowerCase().includes("already registered") ||
-        authError.message.toLowerCase().includes("already exists")) {
+    const alreadyExists =
+      authError.message.toLowerCase().includes("already registered") ||
+      authError.message.toLowerCase().includes("already exists");
+
+    if (!alreadyExists) {
+      return { success: false, error: `Failed to create account: ${authError.message}` };
+    }
+
+    // Auth user exists (from a prior failed attempt) but may have no client record yet.
+    // Look up the user and attempt recovery instead of blocking.
+    const { data: listData, error: listError } = await admin.auth.admin.listUsers();
+    const existing = listData?.users.find(
+      u => u.email?.toLowerCase() === email.toLowerCase()
+    );
+    if (listError || !existing) {
       return { success: false, error: "An account with this email already exists." };
     }
-    return { success: false, error: `Failed to create account: ${authError.message}` };
+
+    // If a client row already exists for this user, truly block.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingClient } = await (admin as any)
+      .from("clients")
+      .select("id")
+      .eq("profile_id", existing.id)
+      .maybeSingle();
+
+    if (existingClient) {
+      return { success: false, error: "This email already has a client account in Forge." };
+    }
+
+    userId = existing.id;
+    isExistingUser = true;
+  } else {
+    userId = authData.user.id;
   }
 
-  const userId = authData.user.id;
-
-  // 2. Update the auto-created profile to add initials + avatar_color
-  //    (trigger only sets id, full_name, role — initials/color are missing)
+  // 2. Update profile — sets initials + avatar_color (trigger omits these),
+  //    and corrects full_name/role in case the orphaned profile has stale values.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin as any)
     .from("profiles")
-    .update({ initials: logoLetter, avatar_color: logoColor })
+    .update({ initials: logoLetter, avatar_color: logoColor, full_name: name, role: "client" })
     .eq("id", userId);
 
-  // 3. Insert client row linked to profile
+  // 3. Insert the client row linked to the profile
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: clientError } = await (admin as any)
     .from("clients")
     .insert({ name, logo_letter: logoLetter, logo_color: logoColor, profile_id: userId });
 
   if (clientError) {
-    // Roll back: delete the auth user so partial state doesn't persist
-    await admin.auth.admin.deleteUser(userId);
+    // Only roll back the auth user if we freshly created it this attempt
+    if (!isExistingUser) await admin.auth.admin.deleteUser(userId);
     return { success: false, error: `Failed to create client record: ${clientError.message}` };
   }
 
-  // 4. Send magic link so the client can set their own password on first login
-  //    (fire-and-forget — don't fail client creation if email sending fails)
+  // 4. Send magic link for first-login (fire-and-forget)
   await admin.auth.admin.generateLink({
     type: "magiclink",
     email,
