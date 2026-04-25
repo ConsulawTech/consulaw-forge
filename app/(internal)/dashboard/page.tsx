@@ -70,26 +70,34 @@ export default async function DashboardPage() {
                   View milestones →
                 </Link>
               </div>
-              <div className="m-[18px] rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#1B3FEE 0%,#7b8ef5 100%)", boxShadow: "0 8px 24px rgba(27,63,238,0.3)" }}>
-                <div className="absolute top-[-30px] right-[-30px] w-[110px] h-[110px] rounded-full bg-white/[0.08]" />
-                <div className="absolute bottom-[-20px] right-[60px] w-[70px] h-[70px] rounded-full bg-white/[0.05]" />
-                <div className="text-[10px] font-bold tracking-[0.1em] uppercase text-white/75 mb-1">Primary Goal</div>
-                <div className="text-xl font-extrabold text-white mb-1">Website Redesign</div>
-                <div className="text-[12px] text-white/75 mb-4">Target timeline: <strong className="text-white">Q2 2026</strong></div>
-                <div className="bg-white/20 rounded-full h-1.5 mb-2.5">
-                  <div className="bg-white rounded-full h-1.5 w-[65%] relative">
-                    <div className="absolute right-[-1px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-[rgba(27,63,238,0.5)]" />
+              {projects?.[0] ? (
+                <div className="m-[18px] rounded-2xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#1B3FEE 0%,#7b8ef5 100%)", boxShadow: "0 8px 24px rgba(27,63,238,0.3)" }}>
+                  <div className="absolute top-[-30px] right-[-30px] w-[110px] h-[110px] rounded-full bg-white/[0.08]" />
+                  <div className="absolute bottom-[-20px] right-[60px] w-[70px] h-[70px] rounded-full bg-white/[0.05]" />
+                  <div className="text-[10px] font-bold tracking-[0.1em] uppercase text-white/75 mb-1">Primary Goal</div>
+                  <div className="text-xl font-extrabold text-white mb-1">{(projects[0] as any).name}</div>
+                  {(projects[0] as any).target_date && (
+                    <div className="text-[12px] text-white/75 mb-4">
+                      Target: <strong className="text-white">{formatDate((projects[0] as any).target_date, { month: "short", year: "numeric" })}</strong>
+                    </div>
+                  )}
+                  <div className="bg-white/20 rounded-full h-1.5 mb-2.5">
+                    <div className="bg-white rounded-full h-1.5 relative" style={{ width: `${(projects[0] as any).overall_progress ?? 0}%` }}>
+                      <div className="absolute right-[-1px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-[rgba(27,63,238,0.5)]" />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
                   <div className="text-2xl font-extrabold text-white tracking-tight">
-                    65% <span className="text-[13px] font-medium text-white/75">complete</span>
+                    {(projects[0] as any).overall_progress ?? 0}% <span className="text-[13px] font-medium text-white/75">complete</span>
                   </div>
-                  <button className="px-3.5 py-1.5 rounded-[8px] bg-white/[0.18] border border-white/25 text-white text-[12px] font-semibold cursor-pointer hover:bg-white/[0.28] transition-colors">
-                    + Add Secondary Goal
-                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="m-[18px] rounded-2xl p-5 text-center" style={{ background: "linear-gradient(135deg,#1B3FEE 0%,#7b8ef5 100%)" }}>
+                  <p className="text-white/80 text-[13px] mb-3">No active projects yet.</p>
+                  <Link href="/clients" className="inline-block px-4 py-2 rounded-[8px] bg-white/20 border border-white/25 text-white text-[12px] font-semibold hover:bg-white/30 transition-colors">
+                    Add a Client →
+                  </Link>
+                </div>
+              )}
 
               {/* Upcoming activities */}
               <div className="flex items-center gap-2.5 px-[18px] py-[15px] border-t border-b border-white/50">
@@ -115,36 +123,29 @@ export default async function DashboardPage() {
               ))}
             </div>
 
-            {/* Smart Suggestions */}
-            <div className="glass rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2.5 px-[18px] py-[15px] border-b border-white/50">
-                <div className="w-6 h-6 bg-[rgba(245,159,0,0.1)] rounded-[7px] flex items-center justify-center">
-                  <Zap className="w-3 h-3 text-[#f59f00]" />
-                </div>
-                <span className="text-[14.5px] font-bold text-[#0f172a]">Smart Suggestions</span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100/90 text-[#475569] border border-slate-200/60">Based on current milestone</span>
-              </div>
-              <div className="p-[18px]">
-                <p className="text-[12.5px] text-[#475569] leading-relaxed mb-3">
-                  Smart suggestions based on project status, upcoming milestones, and task history.
-                </p>
-                {[
-                  { date: "Thu, Jun 1", task: "Define dev handoff checklist" },
-                  { date: "Sat, Jun 7", task: "Schedule stakeholder review session" },
-                  { date: "Mon, Jun 9", task: "Assign QA testing sprint tasks" },
-                ].map((s) => (
-                  <div key={s.task} className="flex items-center gap-2 px-2.5 py-2 bg-white/60 rounded-[8px] mb-1.5 border border-white/60">
-                    <span className="text-[11px] font-semibold text-[#1B3FEE] whitespace-nowrap">{s.date}</span>
-                    <span className="text-[12px] text-[#0f172a] flex-1">{s.task}</span>
+            {/* Delays / Late tasks */}
+            {delays > 0 && (
+              <div className="glass rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-2.5 px-[18px] py-[15px] border-b border-white/50">
+                  <div className="w-6 h-6 bg-[rgba(239,68,68,0.1)] rounded-[7px] flex items-center justify-center">
+                    <Zap className="w-3 h-3 text-[#ef4444]" />
                   </div>
-                ))}
-                <div className="flex gap-1.5 mt-3">
-                  <button className="text-[12px] font-semibold px-3 py-1.5 rounded-[8px] bg-[#1B3FEE] text-white cursor-pointer hover:bg-[#1535D4] transition-colors">+ Add to Board</button>
-                  <button className="text-[12px] font-semibold px-3 py-1.5 rounded-[8px] bg-white/70 border border-white/60 text-[#475569] cursor-pointer hover:bg-white/90 transition-colors">Schedule</button>
-                  <button className="text-[12px] font-semibold px-3 py-1.5 rounded-[8px] bg-white/70 border border-white/60 text-[#475569] cursor-pointer hover:bg-white/90 transition-colors">Assign</button>
+                  <span className="text-[14.5px] font-bold text-[#0f172a]">Needs Attention</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-[#ef4444] border border-red-100">{delays} late</span>
+                </div>
+                <div className="p-[18px] flex flex-col gap-2">
+                  {taskList.filter(t => t.status === "late").slice(0, 3).map((task) => (
+                    <div key={task.id} className="flex items-center gap-2 px-2.5 py-2 bg-red-50/60 rounded-[8px] border border-red-100/60">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444] flex-shrink-0" />
+                      <span className="text-[12px] text-[#0f172a] flex-1 truncate">{task.title}</span>
+                      <span className="text-[11px] text-[#ef4444] font-semibold whitespace-nowrap">
+                        {task.due_date ? formatDate(task.due_date, { month: "short", day: "numeric" }) : "Overdue"}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right column */}

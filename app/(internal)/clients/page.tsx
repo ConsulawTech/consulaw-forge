@@ -3,7 +3,8 @@ import { Topbar } from "@/components/layout/Topbar";
 import { formatDate } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import Link from "next/link";
-import { Plus, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { AddClientButton } from "@/components/clients/AddClientButton";
 
 export default async function ClientsPage() {
   const supabase = await createClient();
@@ -21,9 +22,7 @@ export default async function ClientsPage() {
             <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">Clients</h1>
             <p className="text-[13px] text-[#475569] mt-0.5">Manage your clients and their projects</p>
           </div>
-          <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)] hover:bg-[#1535D4] transition-all cursor-pointer">
-            <Plus className="w-3.5 h-3.5" /> Add Client
-          </button>
+          <AddClientButton />
         </div>
 
         <div className="grid grid-cols-3 gap-4">
