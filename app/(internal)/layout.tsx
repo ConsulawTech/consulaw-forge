@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/Sidebar";
 import type { Profile, Client, Project } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function InternalLayout({
   children,
 }: {
