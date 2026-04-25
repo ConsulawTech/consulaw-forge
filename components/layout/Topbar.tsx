@@ -331,7 +331,7 @@ export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
           {settingsOpen && (
             <div className="absolute top-full right-0 mt-1.5 w-[210px] glass rounded-xl overflow-hidden shadow-[0_16px_32px_rgba(0,0,0,0.12)] border border-white/60 z-50">
               <Link
-                href="/dashboard"
+                href="/settings"
                 onClick={() => setSettingsOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-3 hover:bg-white/60 transition-colors border-b border-white/40 text-[13px] text-[#475569] font-medium"
               >
