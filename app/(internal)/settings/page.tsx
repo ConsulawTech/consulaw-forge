@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, Lock, Check, Loader2, ShieldCheck, LogOut } from "lucide-react";
+import { User, Lock, Check, Loader2, ShieldCheck, LogOut, Eye, EyeOff } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { createClient } from "@/lib/supabase/client";
 import { saveProfileAction, changePasswordAction } from "@/app/actions/settings";
@@ -251,23 +251,24 @@ function SecurityTab() {
         )}
 
         <form onSubmit={handlePasswordChange} className="space-y-3">
-          {[
-            { key: "currentPassword", label: "Current Password", placeholder: "••••••••••••" },
-            { key: "newPassword", label: "New Password (min 10 chars)", placeholder: "••••••••••••" },
-            { key: "confirmPassword", label: "Confirm New Password", placeholder: "••••••••••••" },
-          ].map(({ key, label, placeholder }) => (
-            <div key={key}>
-              <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">{label}</label>
-              <input
-                type="password"
-                value={form[key as keyof typeof form]}
-                onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                placeholder={placeholder}
-                required
-                className="w-full bg-white/70 border border-white/60 rounded-[10px] px-3.5 py-2.5 text-[13px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1B3FEE]/40 focus:ring-2 focus:ring-[#1B3FEE]/10 transition-all"
-              />
-            </div>
-          ))}
+          <PasswordField
+            label="Current Password"
+            value={form.currentPassword}
+            onChange={(v) => setForm((f) => ({ ...f, currentPassword: v }))}
+            required
+          />
+          <PasswordField
+            label="New Password (min 10 chars)"
+            value={form.newPassword}
+            onChange={(v) => setForm((f) => ({ ...f, newPassword: v }))}
+            required
+          />
+          <PasswordField
+            label="Confirm New Password"
+            value={form.confirmPassword}
+            onChange={(v) => setForm((f) => ({ ...f, confirmPassword: v }))}
+            required
+          />
           <div className="pt-1">
             <button
               type="submit"
@@ -299,6 +300,43 @@ function SecurityTab() {
             <LogOut className="w-3.5 h-3.5" /> Sign out
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PasswordField({
+  label,
+  value,
+  onChange,
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <label className="block text-[12px] font-semibold text-[#475569] mb-1.5">{label}</label>
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="••••••••••••"
+          required={required}
+          className="w-full bg-white/70 border border-white/60 rounded-[10px] px-3.5 py-2.5 pr-10 text-[13px] text-[#0f172a] placeholder:text-[#94a3b8] outline-none focus:border-[#1B3FEE]/40 focus:ring-2 focus:ring-[#1B3FEE]/10 transition-all"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShow((s) => !s)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#475569] transition-colors"
+        >
+          {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
       </div>
     </div>
   );

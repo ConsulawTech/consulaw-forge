@@ -5,6 +5,7 @@ import { formatDate, getAvatarColor } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ChatWidget } from "@/components/portal/ChatWidget";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,12 +26,20 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const milestones = project?.milestones ?? [];
   const currentMilestone = milestones[0];
 
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("*, assignee:profiles(*)")
-    .eq("project_id", project?.id ?? "")
-    .order("due_date")
-    .limit(8);
+  const [{ data: tasks }, { data: messages }] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("*, assignee:profiles(*)")
+      .eq("project_id", project?.id ?? "")
+      .order("due_date")
+      .limit(8),
+    supabase
+      .from("messages")
+      .select("*")
+      .eq("project_id", project?.id ?? "")
+      .order("created_at")
+      .limit(30),
+  ]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -157,6 +166,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </div>
         </div>
       </div>
+
+      {/* Team chat — same realtime channel as client portal */}
+      {project && (
+        <ChatWidget
+          projectId={project.id}
+          initialMessages={messages ?? []}
+        />
+      )}
     </div>
   );
 }
