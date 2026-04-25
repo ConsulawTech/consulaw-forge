@@ -5,13 +5,16 @@ import { formatDate, getAvatarColor } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 
-export default async function TasksPage() {
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams;
   const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+
   const [{ data: tasks }, { data: projectsRaw }, { data: profiles }] = await Promise.all([
-    supabase
-      .from("tasks")
-      .select("*, assignee:profiles(*), project:projects(name, client:clients(name))")
-      .order("due_date"),
+    q
+      ? db.from("tasks").select("*, assignee:profiles(*), project:projects(name, client:clients(name))").ilike("title", `%${q}%`).order("due_date")
+      : db.from("tasks").select("*, assignee:profiles(*), project:projects(name, client:clients(name))").order("due_date"),
     supabase
       .from("projects")
       .select("id, name, milestones(id, title)")
@@ -34,8 +37,12 @@ export default async function TasksPage() {
       <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:thin]">
         <div className="flex items-end justify-between mb-5">
           <div>
-            <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">All Tasks</h1>
-            <p className="text-[13px] text-[#475569] mt-0.5">Across all active projects and clients</p>
+            <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">
+              {q ? `Results for "${q}"` : "All Tasks"}
+            </h1>
+            <p className="text-[13px] text-[#475569] mt-0.5">
+              {q ? `${tasks?.length ?? 0} task${tasks?.length !== 1 ? "s" : ""} matching your search` : "Across all active projects and clients"}
+            </p>
           </div>
           <div className="flex gap-2">
             <NewTaskButton projects={projectsForModal} profiles={profilesForModal} />
