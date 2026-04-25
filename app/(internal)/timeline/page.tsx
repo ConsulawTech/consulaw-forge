@@ -9,7 +9,7 @@ export default function TimelinePage() {
         <div className="mb-5">
           <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">Timeline Replay</h1>
           <p className="text-[13px] text-[#475569] mt-0.5">
-            Netflix · Website Redesign — drag tasks between phases, then play to watch progress animate
+            Drag tasks between phases, then play to watch progress animate
           </p>
         </div>
         <TimelineReplay />

@@ -1,16 +1,14 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FolderKanban,
   CheckSquare,
-  Calendar,
-  BarChart2,
   Play,
   Users,
-  MessageSquare,
   Plus,
   FileText,
   MoreHorizontal,
@@ -27,15 +25,9 @@ interface SidebarProps {
 const NAV_WORKSPACE = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare, badge: "4", badgeVariant: "red" as const },
-  { href: "/schedule", label: "Schedule", icon: Calendar },
-  { href: "/progress", label: "Progress", icon: BarChart2 },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/clients", label: "Clients", icon: Users },
   { href: "/timeline", label: "Timeline Replay", icon: Play, badge: "New", badgeVariant: "blue" as const },
-];
-
-const NAV_TEAM = [
-  { href: "/members", label: "Members", icon: Users, badge: "12", badgeVariant: "blue" as const },
-  { href: "/messages", label: "Messages", icon: MessageSquare, badge: "3", badgeVariant: "red" as const },
 ];
 
 export function Sidebar({ profile, clients }: SidebarProps) {
@@ -58,7 +50,6 @@ export function Sidebar({ profile, clients }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 px-2.5 py-3.5 overflow-y-auto [scrollbar-width:none]">
         <NavGroup label="Workspace" items={NAV_WORKSPACE} isActive={isActive} />
-        <NavGroup label="Team" items={NAV_TEAM} isActive={isActive} />
       </nav>
 
       {/* Clients */}
@@ -91,10 +82,10 @@ export function Sidebar({ profile, clients }: SidebarProps) {
             </div>
           </Link>
         ))}
-        <button className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-[10px] text-[#1B3FEE] text-xs font-semibold border border-dashed border-[rgba(27,63,238,0.3)] mt-1.5 transition-colors hover:bg-[rgba(27,63,238,0.08)] cursor-pointer">
+        <Link href="/clients" className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-[10px] text-[#1B3FEE] text-xs font-semibold border border-dashed border-[rgba(27,63,238,0.3)] mt-1.5 transition-colors hover:bg-[rgba(27,63,238,0.08)] cursor-pointer">
           <Plus className="w-3 h-3" />
           Add New Client
-        </button>
+        </Link>
       </div>
 
       {/* User */}
@@ -118,7 +109,7 @@ function NavGroup({
   isActive,
 }: {
   label: string;
-  items: typeof NAV_WORKSPACE;
+  items: { href: string; label: string; icon: React.ElementType; badge?: string; badgeVariant?: "red" | "blue" }[];
   isActive: (href: string) => boolean;
 }) {
   return (

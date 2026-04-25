@@ -105,7 +105,7 @@ export default async function DashboardPage() {
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100/90 text-[#475569] border border-slate-200/60">
                   {upcoming.length} this week
                 </span>
-                <button className="ml-auto text-[12px] font-semibold text-[#1B3FEE]">Go to Schedule →</button>
+                <Link href="/tasks" className="ml-auto text-[12px] font-semibold text-[#1B3FEE] hover:underline">Go to Schedule →</Link>
               </div>
               {upcoming.map((task) => (
                 <div key={task.id} className="flex items-center gap-3 px-[18px] py-3 border-b border-white/50 last:border-0 hover:bg-white/40 cursor-pointer transition-colors">

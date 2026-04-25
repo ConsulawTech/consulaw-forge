@@ -3,14 +3,30 @@ import { Topbar } from "@/components/layout/Topbar";
 import { TaskStatusBadge } from "@/components/ui/Badge";
 import { formatDate, getAvatarColor } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
-import { Plus } from "lucide-react";
+import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 
 export default async function TasksPage() {
   const supabase = await createClient();
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("*, assignee:profiles(*), project:projects(name, client:clients(name))")
-    .order("due_date");
+  const [{ data: tasks }, { data: projectsRaw }, { data: profiles }] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("*, assignee:profiles(*), project:projects(name, client:clients(name))")
+      .order("due_date"),
+    supabase
+      .from("projects")
+      .select("id, name, milestones(id, title)")
+      .order("created_at"),
+    supabase.from("profiles").select("id, full_name").eq("role", "team"),
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const projectsForModal = (projectsRaw ?? []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    milestones: (p.milestones ?? []).map((m: any) => ({ id: m.id, title: m.title })),
+  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -22,12 +38,7 @@ export default async function TasksPage() {
             <p className="text-[13px] text-[#475569] mt-0.5">Across all active projects and clients</p>
           </div>
           <div className="flex gap-2">
-            <button className="px-3.5 py-2 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors">
-              Filter
-            </button>
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)] hover:bg-[#1535D4] cursor-pointer transition-all">
-              <Plus className="w-3.5 h-3.5" /> New Task
-            </button>
+            <NewTaskButton projects={projectsForModal} profiles={profilesForModal} />
           </div>
         </div>
 

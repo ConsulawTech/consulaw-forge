@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { Topbar } from "@/components/layout/Topbar";
 import { formatDate, deadlineStatus } from "@/lib/utils";
-import { Edit, MoreHorizontal, Plus } from "lucide-react";
+import { Edit, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { AddMilestoneButton } from "@/components/projects/AddMilestoneButton";
+import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 
 function ProgressRing({ pct, color }: { pct: number; color: string }) {
   const r = 16;
@@ -28,10 +30,23 @@ function ProgressRing({ pct, color }: { pct: number; color: string }) {
 
 export default async function ProjectsPage() {
   const supabase = await createClient();
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("*, client:clients(*), milestones(*, tasks(*))")
-    .order("created_at");
+  const [{ data: projects }, { data: profiles }] = await Promise.all([
+    supabase
+      .from("projects")
+      .select("*, client:clients(*), milestones(*, tasks(*))")
+      .order("created_at"),
+    supabase.from("profiles").select("id, full_name").eq("role", "team"),
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const projectsForModal = (projects ?? []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    milestones: (p.milestones ?? []).map((m: any) => ({ id: m.id, title: m.title })),
+  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -43,12 +58,9 @@ export default async function ProjectsPage() {
             <p className="text-[13px] text-[#475569] mt-0.5">All milestones across active projects</p>
           </div>
           <div className="flex gap-2">
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-white/65 border border-white/60 text-[#475569] hover:bg-white/85 transition-all cursor-pointer">
-              Filter
-            </button>
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)] hover:bg-[#1535D4] transition-all cursor-pointer">
-              <Plus className="w-3.5 h-3.5" /> Add Milestone
-            </button>
+            <NewTaskButton projects={projectsForModal} profiles={profilesForModal} label="Schedule Task" variant="secondary" />
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <AddMilestoneButton projects={(projects ?? []).map((p: any) => ({ id: p.id, name: p.name }))} />
           </div>
         </div>
 

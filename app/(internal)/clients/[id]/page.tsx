@@ -47,9 +47,17 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 Client Portal View
               </button>
             </Link>
-            <button className="px-3.5 py-2 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors">
-              + Schedule Task
-            </button>
+            {project?.id ? (
+              <Link href={`/projects/${project.id}`}>
+                <button className="px-3.5 py-2 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors">
+                  + Schedule Task
+                </button>
+              </Link>
+            ) : (
+              <button className="px-3.5 py-2 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors opacity-60" disabled>
+                + Schedule Task
+              </button>
+            )}
           </div>
         </div>
 
@@ -79,9 +87,17 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     </div>
                   ))}
                 </div>
-                <button className="w-full py-2.5 bg-[#1B3FEE] text-white rounded-[10px] text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]">
-                  Schedule Tasks
-                </button>
+                {project?.id ? (
+                  <Link href={`/projects/${project.id}`} className="block">
+                    <button className="w-full py-2.5 bg-[#1B3FEE] text-white rounded-[10px] text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]">
+                      Schedule Tasks
+                    </button>
+                  </Link>
+                ) : (
+                  <button className="w-full py-2.5 bg-[#1B3FEE] text-white rounded-[10px] text-[13px] font-semibold opacity-60 transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]" disabled>
+                    Schedule Tasks
+                  </button>
+                )}
               </div>
 
               {/* Current milestone card */}
@@ -111,9 +127,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               <span className="text-[12px] text-[#94a3b8]">
                 Deadline: <strong className="text-[#0f172a]">{formatDate(project?.target_date ?? null, { month: "short", day: "numeric", year: "numeric" })}</strong>
               </span>
-              <button className="ml-auto flex items-center gap-1.5 text-[12px] font-semibold text-[#1B3FEE] bg-[rgba(27,63,238,0.08)] px-3 py-1.5 rounded-[8px] border border-[rgba(27,63,238,0.15)] hover:bg-[rgba(27,63,238,0.14)] cursor-pointer transition-colors">
-                <Plus className="w-3 h-3" /> Schedule Task
-              </button>
+              {project?.id && (
+                <Link href={`/projects/${project.id}`} className="ml-auto flex items-center gap-1.5 text-[12px] font-semibold text-[#1B3FEE] bg-[rgba(27,63,238,0.08)] px-3 py-1.5 rounded-[8px] border border-[rgba(27,63,238,0.15)] hover:bg-[rgba(27,63,238,0.14)] cursor-pointer transition-colors">
+                  <Plus className="w-3 h-3" /> Schedule Task
+                </Link>
+              )}
             </div>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {(tasks ?? []).map((task: any) => (
