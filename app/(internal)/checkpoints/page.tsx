@@ -4,6 +4,8 @@ import { formatDate, getAvatarColor } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { TaskStatusSelect } from "@/components/tasks/TaskStatusSelect";
+import { DeleteButton } from "@/components/ui/DeleteButton";
+import { deleteTaskAction } from "@/app/actions/projects";
 import Link from "next/link";
 import type { TaskStatus } from "@/lib/types";
 
@@ -199,6 +201,12 @@ export default async function CheckpointsPage({ searchParams }: { searchParams: 
                       </div>
 
                       <TaskStatusSelect taskId={task.id} status={task.status as TaskStatus} />
+                      <DeleteButton
+                        entityId={task.id}
+                        entityName={task.title}
+                        entityType="checkpoint"
+                        deleteAction={deleteTaskAction}
+                      />
                     </div>
                   ))}
                 </div>

@@ -3,6 +3,8 @@ import { Topbar } from "@/components/layout/Topbar";
 import { formatDate, deadlineStatus } from "@/lib/utils";
 import Link from "next/link";
 import { AddMilestoneButton } from "@/components/projects/AddMilestoneButton";
+import { DeleteButton } from "@/components/ui/DeleteButton";
+import { deleteMilestoneAction } from "@/app/actions/projects";
 import { CheckCircle2, Circle, AlertCircle, Clock } from "lucide-react";
 
 function ProgressRing({ pct, color, size = 44 }: { pct: number; color: string; size?: number }) {
@@ -161,6 +163,12 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                           </span>
                         )}
                         <ProgressRing pct={ms.progress ?? 0} color={ms.color ?? "#1B3FEE"} size={36} />
+                        <DeleteButton
+                          entityId={ms.id}
+                          entityName={ms.title}
+                          entityType="task"
+                          deleteAction={deleteMilestoneAction}
+                        />
                       </div>
                     </div>
                   );

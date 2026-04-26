@@ -104,6 +104,58 @@ export async function updateTaskStatusAction(taskId: string, status: string) {
   return { success: true };
 }
 
+export async function deleteProjectAction(projectId: string): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+
+  const { error } = await db.from("projects").delete().eq("id", projectId);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/projects");
+  revalidatePath("/tasks");
+  revalidatePath("/checkpoints");
+  revalidatePath("/timeline");
+  revalidatePath("/dashboard");
+  revalidatePath("/clients");
+  return { success: true };
+}
+
+export async function deleteMilestoneAction(milestoneId: string): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+
+  const { error } = await db.from("milestones").delete().eq("id", milestoneId);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/projects");
+  revalidatePath("/tasks");
+  revalidatePath("/checkpoints");
+  revalidatePath("/timeline");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function deleteTaskAction(taskId: string): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+
+  const { error } = await db.from("tasks").delete().eq("id", taskId);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/projects");
+  revalidatePath("/tasks");
+  revalidatePath("/checkpoints");
+  revalidatePath("/timeline");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 export async function bulkCreateProjectTasksAction(
   projectId: string,
   milestonesData: { title: string; description?: string | null }[],

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AddMilestoneButton } from "@/components/projects/AddMilestoneButton";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { AddProjectButton } from "@/components/projects/AddProjectButton";
+import { DeleteButton } from "@/components/ui/DeleteButton";
+import { deleteProjectAction } from "@/app/actions/projects";
 import { CheckCircle2, Circle, AlertCircle, Clock, ChevronRight } from "lucide-react";
 
 function ProgressRing({ pct, color, size = 44 }: { pct: number; color: string; size?: number }) {
@@ -138,12 +140,18 @@ export default async function ProjectsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2 w-full sm:w-auto">
+                  <div className="flex gap-2 w-full sm:w-auto items-center">
                     <Link href={`/projects/${project.id}`} className="flex-1 sm:flex-none">
                       <button className="w-full px-4 py-2 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors flex items-center justify-center gap-1.5">
                         View Project <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </Link>
+                    <DeleteButton
+                      entityId={project.id}
+                      entityName={project.name}
+                      entityType="project"
+                      deleteAction={deleteProjectAction}
+                    />
                   </div>
                 </div>
 

@@ -8,6 +8,9 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { AddMilestoneButton } from "@/components/projects/AddMilestoneButton";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
+import { DeleteButton } from "@/components/ui/DeleteButton";
+import { GenerateTasksButton } from "@/components/projects/GenerateTasksButton";
+import { deleteProjectAction, deleteMilestoneAction, deleteTaskAction } from "@/app/actions/projects";
 
 function ProgressRing({ pct, color }: { pct: number; color: string }) {
   const r = 16;
@@ -35,7 +38,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       .select("*, client:clients(*), milestones(*, tasks(*, assignee:profiles(*)))")
       .eq("id", id)
       .single(),
-    supabase.from("profiles").select("id, full_name").eq("role", "team"),
+    supabase.from("profiles").select("id, full_name, job_title").eq("role", "team"),
   ]);
 
   if (!projectRaw) notFound();
@@ -46,26 +49,41 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const projectForModal = [{ id: project.id, name: project.name, milestones: (project.milestones ?? []).map((m: any) => ({ id: m.id, title: m.title })) }];
   const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
+  const teamProfilesForAi = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }));
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Topbar />
       <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:thin]">
         {/* Back + header */}
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-3 mb-5 flex-wrap">
           <Link href="/projects" className="w-8 h-8 rounded-[10px] bg-white/60 border border-white/50 flex items-center justify-center hover:bg-white/80 transition-colors cursor-pointer">
             <ChevronLeft className="w-4 h-4 text-[#475569]" />
           </Link>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">{project.client?.name} — {project.name}</h1>
             <p className="text-[13px] text-[#475569] mt-0.5">
               {project.overall_progress}% complete · Target: {formatDate(project.target_date, { month: "short", year: "numeric" })}
               {dlStatus === "late" && <span className="ml-2 text-[#ef4444] font-semibold">· Overdue</span>}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <GenerateTasksButton
+              projectId={project.id}
+              projectName={project.name}
+              projectDescription={project.description}
+              teamProfiles={teamProfilesForAi}
+            />
             <AddMilestoneButton projects={[{ id: project.id, name: project.name }]} defaultProjectId={project.id} label="Add Task" />
             <NewTaskButton projects={projectForModal} profiles={profilesForModal} defaultProjectId={project.id} label="Add Checkpoint" variant="secondary" />
+            <DeleteButton
+              entityId={project.id}
+              entityName={project.name}
+              entityType="project"
+              deleteAction={deleteProjectAction}
+              redirectAfterDelete="/projects"
+              size="md"
+            />
           </div>
         </div>
 
@@ -116,6 +134,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                       label="+ Checkpoint"
                       variant="inline"
                     />
+                    <DeleteButton
+                      entityId={ms.id}
+                      entityName={ms.title}
+                      entityType="task"
+                      deleteAction={deleteMilestoneAction}
+                    />
                   </div>
                 </div>
 
@@ -125,7 +149,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 ) : (
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   (ms.tasks ?? []).map((task: any) => (
-                    <div key={task.id} className="flex items-center gap-3 px-5 py-3 border-b border-white/50 last:border-0 hover:bg-white/40 transition-colors">
+                    <div key={task.id} className="flex items-center gap-3 px-5 py-3 border-b border-white/50 last:border-0 hover:bg-white/40 transition-colors group">
                       <div className="min-w-[96px]">
                         <div className="text-[12px] font-semibold text-[#0f172a]">
                           {task.due_date ? formatDate(task.due_date, { month: "short", day: "numeric" }) : "No date"}
@@ -141,6 +165,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                         <div className="text-[11px] text-[#94a3b8]">{task.assignee?.full_name ?? "Unassigned"}</div>
                       </div>
                       <TaskStatusBadge status={task.status} />
+                      <DeleteButton
+                        entityId={task.id}
+                        entityName={task.title}
+                        entityType="checkpoint"
+                        deleteAction={deleteTaskAction}
+                      />
                     </div>
                   ))
                 )}
