@@ -5,14 +5,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { sendEmail, clientWelcomeEmail } from "@/lib/email";
 
-type ActionResult = { success: true } | { success: false; error: string };
+type SimpleResult = { success: true } | { success: false; error: string };
+type CreateClientResult =
+  | { success: true; emailSent: true }
+  | { success: true; emailSent: false; emailError: string }
+  | { success: false; error: string };
 
 function generateTempPassword(): string {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!";
   return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
-export async function createClientAction(formData: FormData): Promise<ActionResult> {
+export async function createClientAction(formData: FormData): Promise<CreateClientResult> {
   const name = (formData.get("name") as string | null)?.trim();
   const email = (formData.get("email") as string | null)?.trim();
 
@@ -66,15 +70,18 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
     subject: "Welcome — your Consulaw client portal is ready",
     html,
   });
-  if (!emailResult.ok) {
-    console.error("Welcome email failed:", emailResult.reason);
-  }
 
   revalidatePath("/clients");
-  return { success: true };
+
+  if (!emailResult.ok) {
+    console.error("Welcome email failed:", emailResult.reason);
+    return { success: true, emailSent: false, emailError: emailResult.reason ?? "Unknown error" };
+  }
+
+  return { success: true, emailSent: true };
 }
 
-export async function resendClientCredentialsAction(clientId: string): Promise<ActionResult> {
+export async function resendClientCredentialsAction(clientId: string): Promise<SimpleResult> {
   const supabase = await createClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,7 +136,7 @@ export async function resendClientCredentialsAction(clientId: string): Promise<A
   return { success: true };
 }
 
-export async function deleteClientAction(clientId: string): Promise<ActionResult> {
+export async function deleteClientAction(clientId: string): Promise<SimpleResult> {
   const supabase = await createClient();
 
   // Fetch profile_id before deleting so we can remove the auth user too
