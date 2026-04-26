@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, FileText, ChevronDown } from "lucide-react";
+import { Send, FileText, ChevronDown, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatTime } from "@/lib/utils";
 import type { Message } from "@/lib/types";
@@ -16,14 +16,16 @@ interface PortalMessagesProps {
   initialProjectId: string;
   initialMessages: Message[];
   senderName: string;
+  senderId: string;
 }
 
-export function PortalMessages({ projects, initialProjectId, initialMessages, senderName }: PortalMessagesProps) {
+export function PortalMessages({ projects, initialProjectId, initialMessages, senderName, senderId }: PortalMessagesProps) {
   const supabase = createClient();
   const [projectId, setProjectId] = useState(initialProjectId);
   const [messages, setMessages]   = useState<Message[]>(initialMessages);
   const [input, setInput]         = useState("");
   const [sending, setSending]     = useState(false);
+  const [sendError, setSendError] = useState("");
   const msgsRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to real-time messages for the selected project
@@ -65,19 +67,26 @@ export function PortalMessages({ projects, initialProjectId, initialMessages, se
   async function send() {
     const text = input.trim();
     if (!text || sending) return;
-    setSending(true);
-    setInput("");
 
-    const { data: { user } } = await supabase.auth.getUser();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from("messages") as any).insert({
-      project_id:  projectId,
-      sender_id:   user?.id ?? null,
-      sender_name: senderName,
-      sender_role: "client",
-      content:     text,
-    });
-    setSending(false);
+    setSending(true);
+    setSendError("");
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from("messages") as any).insert({
+        project_id:  projectId,
+        sender_id:   senderId,
+        sender_name: senderName,
+        sender_role: "client",
+        content:     text,
+      });
+      if (error) throw new Error(error.message);
+      setInput("");
+    } catch (err) {
+      setSendError((err as Error).message);
+    } finally {
+      setSending(false);
+    }
   }
 
   const selectedProject = projects.find((p) => p.id === projectId);
@@ -164,6 +173,12 @@ export function PortalMessages({ projects, initialProjectId, initialMessages, se
 
       {/* Input bar */}
       <div className="px-6 py-4 border-t border-white/50 glass flex-shrink-0">
+        {sendError && (
+          <div className="flex items-center gap-1.5 text-[11px] text-red-500 mb-2 px-1">
+            <AlertCircle className="w-3 h-3" />
+            {sendError}
+          </div>
+        )}
         <div className="flex items-center gap-3 bg-white/70 border border-white/60 rounded-[14px] px-4 py-2.5 focus-within:border-[rgba(27,63,238,0.3)] focus-within:ring-2 focus-within:ring-[rgba(27,63,238,0.08)] transition-all">
           <input
             type="text"

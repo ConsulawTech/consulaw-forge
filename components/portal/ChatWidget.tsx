@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, X, Send, FileText } from "lucide-react";
+import { MessageSquare, X, Send, FileText, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/types";
 import { formatTime } from "@/lib/utils";
@@ -16,8 +16,28 @@ export function ChatWidget({ projectId, initialMessages }: ChatWidgetProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
+  const [sender, setSender] = useState<{ id: string; name: string; role: string } | null>(null);
   const msgsRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
+
+  // Fetch sender profile once on mount
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
+        .single();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = profile as any;
+      if (p) {
+        setSender({ id: user.id, name: p.full_name ?? "User", role: p.role ?? "client" });
+      }
+    })();
+  }, [supabase]);
 
   useEffect(() => {
     const channel = supabase
@@ -42,26 +62,30 @@ export function ChatWidget({ projectId, initialMessages }: ChatWidgetProps) {
   async function send() {
     const text = input.trim();
     if (!text || sending) return;
+    if (!sender) {
+      setSendError("Unable to send — please sign in again.");
+      return;
+    }
+
     setSending(true);
-    setInput("");
+    setSendError("");
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name, role")
-      .eq("id", user?.id ?? "")
-      .single();
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from("messages") as any).insert({
-      project_id: projectId,
-      sender_id: user?.id ?? null,
-      sender_name: (profile as any)?.full_name ?? "Client",
-      sender_role: (profile as any)?.role ?? "client",
-      content: text,
-    });
-
-    setSending(false);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from("messages") as any).insert({
+        project_id: projectId,
+        sender_id: sender.id,
+        sender_name: sender.name,
+        sender_role: sender.role,
+        content: text,
+      });
+      if (error) throw new Error(error.message);
+      setInput("");
+    } catch (err) {
+      setSendError((err as Error).message);
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -137,22 +161,30 @@ export function ChatWidget({ projectId, initialMessages }: ChatWidgetProps) {
           </div>
 
           {/* Input */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-t border-[rgba(203,213,225,0.3)] bg-white/60">
-            <input
-              type="text"
-              placeholder="Type a message…"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-              className="flex-1 rounded-[10px] px-3 py-2 text-[12.5px] text-[#0f172a] placeholder:text-[#94a3b8] bg-white/80 border border-[rgba(203,213,225,0.5)] outline-none focus:border-[rgba(27,63,238,0.4)] focus:ring-2 focus:ring-[rgba(27,63,238,0.08)] transition-all font-sans"
-            />
-            <button
-              onClick={send}
-              disabled={!input.trim() || sending}
-              className="w-[34px] h-[34px] rounded-[10px] bg-[#1B3FEE] flex items-center justify-center cursor-pointer hover:bg-[#1535D4] transition-colors disabled:opacity-50 shadow-[0_2px_8px_rgba(27,63,238,0.25)] flex-shrink-0"
-            >
-              <Send className="w-3.5 h-3.5 text-white" />
-            </button>
+          <div className="flex flex-col gap-1 px-3 py-2.5 border-t border-[rgba(203,213,225,0.3)] bg-white/60">
+            {sendError && (
+              <div className="flex items-center gap-1 text-[10px] text-red-500 px-1">
+                <AlertCircle className="w-2.5 h-2.5" />
+                {sendError}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Type a message…"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                className="flex-1 rounded-[10px] px-3 py-2 text-[12.5px] text-[#0f172a] placeholder:text-[#94a3b8] bg-white/80 border border-[rgba(203,213,225,0.5)] outline-none focus:border-[rgba(27,63,238,0.4)] focus:ring-2 focus:ring-[rgba(27,63,238,0.08)] transition-all font-sans"
+              />
+              <button
+                onClick={send}
+                disabled={!input.trim() || sending}
+                className="w-[34px] h-[34px] rounded-[10px] bg-[#1B3FEE] flex items-center justify-center cursor-pointer hover:bg-[#1535D4] transition-colors disabled:opacity-50 shadow-[0_2px_8px_rgba(27,63,238,0.25)] flex-shrink-0"
+              >
+                <Send className="w-3.5 h-3.5 text-white" />
+              </button>
+            </div>
           </div>
         </div>
       )}

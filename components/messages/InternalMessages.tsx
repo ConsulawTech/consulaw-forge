@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, MessageSquare, ChevronDown, Users, FolderKanban, User, Hash } from "lucide-react";
+import { Send, MessageSquare, ChevronDown, Users, FolderKanban, User, Hash, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatTime, getAvatarColor } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
@@ -46,6 +46,7 @@ export function InternalMessages({
   const [recipientId, setRecipientId] = useState<string>("");
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
   const msgsRef = useRef<HTMLDivElement>(null);
 
   // Messages state per tab
@@ -80,7 +81,13 @@ export function InternalMessages({
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "internal_messages", filter: `project_id=eq.${projectId}` },
-          (payload) => setTeamMessages((prev) => [...prev, payload.new as InternalMessage])
+          (payload) => {
+            const msg = payload.new as InternalMessage;
+            // Only append team messages (recipient_id is null)
+            if (msg.recipient_id === null) {
+              setTeamMessages((prev) => [...prev, msg]);
+            }
+          }
         )
         .subscribe();
       return () => { supabase.removeChannel(channel); };
@@ -94,7 +101,7 @@ export function InternalMessages({
         .channel(`internal-messages-dm:${senderId}:${recipientId}`)
         .on(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "internal_messages" },
+          { event: "INSERT", schema: "public", table: "internal_messages", filter: `project_id=is.null` },
           (payload) => {
             const msg = payload.new as InternalMessage;
             // Only append if it's between these two users
@@ -180,41 +187,49 @@ export function InternalMessages({
   async function send() {
     const text = input.trim();
     if (!text || sending) return;
+    if ((activeTab === "dm" ? !recipientId : !projectId)) return;
+
     setSending(true);
-    setInput("");
+    setSendError("");
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (activeTab === "client" && projectId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from("messages") as any).insert({
-        project_id: projectId,
-        sender_id: user?.id ?? null,
-        sender_name: senderName,
-        sender_role: "team",
-        content: text,
-      });
-    } else if (activeTab === "team" && projectId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from("internal_messages") as any).insert({
-        project_id: projectId,
-        sender_id: user?.id ?? null,
-        sender_name: senderName,
-        recipient_id: null,
-        content: text,
-      });
-    } else if (activeTab === "dm" && recipientId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from("internal_messages") as any).insert({
-        project_id: null,
-        sender_id: user?.id ?? null,
-        sender_name: senderName,
-        recipient_id: recipientId,
-        content: text,
-      });
+    try {
+      if (activeTab === "client" && projectId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from("messages") as any).insert({
+          project_id: projectId,
+          sender_id: senderId,
+          sender_name: senderName,
+          sender_role: "team",
+          content: text,
+        });
+        if (error) throw new Error(error.message);
+      } else if (activeTab === "team" && projectId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from("internal_messages") as any).insert({
+          project_id: projectId,
+          sender_id: senderId,
+          sender_name: senderName,
+          recipient_id: null,
+          content: text,
+        });
+        if (error) throw new Error(error.message);
+      } else if (activeTab === "dm" && recipientId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from("internal_messages") as any).insert({
+          project_id: null,
+          sender_id: senderId,
+          sender_name: senderName,
+          recipient_id: recipientId,
+          content: text,
+        });
+        if (error) throw new Error(error.message);
+      }
+      setInput("");
+    } catch (err) {
+      setSendError((err as Error).message);
+    } finally {
+      setSending(false);
     }
-
-    setSending(false);
   }
 
   // ── Current messages and UI helpers ────────────────────────────────────
@@ -491,6 +506,12 @@ export function InternalMessages({
 
         {/* Input bar */}
         <div className="px-4 md:px-6 py-4 border-t border-white/50 glass flex-shrink-0">
+          {sendError && (
+            <div className="flex items-center gap-1.5 text-[11px] text-red-500 mb-2 px-1">
+              <AlertCircle className="w-3 h-3" />
+              {sendError}
+            </div>
+          )}
           <div className="flex items-center gap-3 bg-white/70 border border-white/60 rounded-[14px] px-4 py-2.5 focus-within:border-[rgba(27,63,238,0.3)] focus-within:ring-2 focus-within:ring-[rgba(27,63,238,0.08)] transition-all">
             <input
               type="text"

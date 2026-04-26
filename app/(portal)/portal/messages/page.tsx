@@ -56,6 +56,7 @@ export default async function PortalMessagesPage() {
       initialMessages={initialMessages ?? []}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       senderName={(profile as any)?.full_name ?? clientRaw?.name ?? "Client"}
+      senderId={user.id}
     />
   );
 }
