@@ -11,4 +11,5 @@ export async function updateTaskStatus(taskId: string, status: TaskStatus) {
   revalidatePath("/tasks");
   revalidatePath("/projects");
   revalidatePath("/dashboard");
+  revalidatePath("/timeline");
 }
