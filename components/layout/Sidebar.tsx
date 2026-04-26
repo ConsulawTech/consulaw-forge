@@ -6,15 +6,12 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FolderKanban,
-  CheckSquare,
-  ListChecks,
   Play,
   Users,
   MessageSquare,
   Plus,
   FileText,
   MoreHorizontal,
-  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Profile, Client, Project } from "@/lib/types";
@@ -37,14 +34,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Client", icon: Users },
-  {
-    label: "Projects",
-    icon: FolderKanban,
-    children: [
-      { href: "/projects", label: "Tasks", icon: ListChecks },
-      { href: "/checkpoints", label: "Checkpoints", icon: CheckSquare },
-    ],
-  },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/timeline", label: "Timeline Replay", icon: Play, badge: "New", badgeVariant: "blue" },
 ];
@@ -52,9 +42,7 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar({ profile, clients }: SidebarProps) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
-  const [projectsExpanded, setProjectsExpanded] = useState(
-    pathname === "/projects" || pathname === "/checkpoints" || pathname.startsWith("/projects/")
-  );
+
 
   return (
     <aside className="hidden lg:flex w-[232px] min-w-[232px] flex-col h-screen glass border-r border-white/50 overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.04)]">
@@ -76,57 +64,6 @@ export function Sidebar({ profile, clients }: SidebarProps) {
             Workspace
           </span>
           {NAV_ITEMS.map((item) => {
-            if (item.children) {
-              const isParentActive = item.children.some((c) => isActive(c.href));
-              return (
-                <div key={item.label}>
-                  <button
-                    onClick={() => setProjectsExpanded(!projectsExpanded)}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-[13px] font-medium transition-all duration-150 mb-0.5 select-none text-left cursor-pointer",
-                      isParentActive
-                        ? "bg-[rgba(27,63,238,0.08)] text-[#1B3FEE] font-semibold"
-                        : "text-[#475569] hover:bg-white/60 hover:text-[#0f172a]"
-                    )}
-                  >
-                    {isParentActive && (
-                      <span className="absolute left-[-1px] top-[20%] h-[60%] w-[3px] bg-[#1B3FEE] rounded-r-[3px]" />
-                    )}
-                    <item.icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.8} />
-                    <span className="flex-1">{item.label}</span>
-                    <ChevronDown
-                      className={cn(
-                        "w-3.5 h-3.5 text-[#94a3b8] transition-transform duration-200",
-                        projectsExpanded && "rotate-180"
-                      )}
-                    />
-                  </button>
-                  {projectsExpanded && (
-                    <div className="ml-4 pl-2 border-l border-white/40 mb-1">
-                      {item.children.map((child) => {
-                        const active = isActive(child.href);
-                        return (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            className={cn(
-                              "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-[12.5px] font-medium transition-all duration-150 mb-0.5 select-none",
-                              active
-                                ? "bg-[rgba(27,63,238,0.08)] text-[#1B3FEE] font-semibold"
-                                : "text-[#475569] hover:bg-white/60 hover:text-[#0f172a]"
-                            )}
-                          >
-                            <child.icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.8} />
-                            <span className="flex-1">{child.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
             const active = isActive(item.href!);
             return (
               <Link

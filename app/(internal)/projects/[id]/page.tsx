@@ -47,6 +47,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const project = projectRaw as any;
   const dlStatus = deadlineStatus(project.target_date);
 
+  // Compute progress from checkpoint statuses (stored fields may be stale)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allCheckpoints = (project.milestones ?? []).flatMap((m: any) => m.tasks ?? []);
+  const doneCheckpoints = allCheckpoints.filter((t: { status: string }) => t.status === "done").length;
+  const overallProgress = allCheckpoints.length > 0 ? Math.round((doneCheckpoints / allCheckpoints.length) * 100) : 0;
+
   const projectForModal = [{ id: project.id, name: project.name }];
   const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
   const teamProfilesForAi = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }));
@@ -63,7 +69,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className="flex-1 min-w-0">
             <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">{project.client?.name} — {project.name}</h1>
             <p className="text-[13px] text-[#475569] mt-0.5">
-              {project.overall_progress}% complete · Target: {formatDate(project.target_date, { month: "short", year: "numeric" })}
+              {overallProgress}% complete · Target: {formatDate(project.target_date, { month: "short", year: "numeric" })}
               {dlStatus === "late" && <span className="ml-2 text-[#ef4444] font-semibold">· Overdue</span>}
             </p>
           </div>
@@ -91,10 +97,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <div className="glass rounded-2xl p-5 mb-5">
           <div className="flex justify-between text-[12px] font-semibold text-[#475569] mb-2">
             <span>Overall Progress</span>
-            <span>{project.overall_progress}%</span>
+            <span>{overallProgress}%</span>
           </div>
           <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-2">
-            <div className="h-2 rounded-full bg-[#1B3FEE] transition-all" style={{ width: `${project.overall_progress}%` }} />
+            <div className="h-2 rounded-full bg-[#1B3FEE] transition-all" style={{ width: `${overallProgress}%` }} />
           </div>
         </div>
 
@@ -107,6 +113,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (project.milestones ?? []).map((ms: any) => {
             const dlMs = deadlineStatus(ms.deadline);
+            const msDone = (ms.tasks ?? []).filter((t: { status: string }) => t.status === "done").length;
+            const msTotal = (ms.tasks ?? []).length;
+            const msProgress = msTotal > 0 ? Math.round((msDone / msTotal) * 100) : 0;
             return (
               <div key={ms.id} className="glass rounded-2xl overflow-hidden mb-4">
                 {/* Task header */}
@@ -126,7 +135,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                         {formatDate(ms.deadline, { month: "short", day: "numeric", year: "numeric" })}
                       </span>
                     )}
-                    <ProgressRing pct={ms.progress ?? 0} color={ms.color ?? "#1B3FEE"} />
+                    <ProgressRing pct={msProgress} color={ms.color ?? "#1B3FEE"} />
                     <NewTaskButton
                       projects={projectForModal}
                       profiles={profilesForModal}

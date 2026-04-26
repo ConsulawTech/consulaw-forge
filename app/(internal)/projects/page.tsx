@@ -105,7 +105,7 @@ export default async function ProjectsPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                       <span className="text-[12px] md:text-[13px] text-[#1B3FEE] font-medium">
-                        {project.overall_progress}% complete
+                        {allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0}% complete
                       </span>
                       {project.target_date && (
                         <span className={`text-[12px] font-medium ${
@@ -224,7 +224,7 @@ export default async function ProjectsPage() {
                         </div>
                         <div className="px-4 py-3.5 flex items-center">
                           <div className="flex flex-col items-center gap-0.5">
-                            <ProgressRing pct={ms.progress} color={ms.color ?? "#1B3FEE"} size={38} />
+                            <ProgressRing pct={msTotal > 0 ? Math.round((msDone / msTotal) * 100) : 0} color={ms.color ?? "#1B3FEE"} size={38} />
                             <span className="text-[9px] text-[#94a3b8]">{msDone}/{msTotal}</span>
                           </div>
                         </div>

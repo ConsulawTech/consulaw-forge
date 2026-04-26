@@ -69,9 +69,9 @@ export default async function PortalPage() {
   const lateTasks = allTasks.filter(t => t.status === "late").length;
   const todoTasks = allTasks.filter(t => t.status === "todo").length;
 
-  // Overall progress across all projects (average)
-  const overallProgress = projects.length > 0
-    ? Math.round(projects.reduce((sum: number, p: any) => sum + (p.overall_progress ?? 0), 0) / projects.length)
+  // Overall progress across all projects (computed from checkpoint statuses)
+  const overallProgress = allTasks.length > 0
+    ? Math.round((doneTasks / allTasks.length) * 100)
     : 0;
 
   // Deduplicate team members across all projects
@@ -174,7 +174,7 @@ export default async function PortalPage() {
                   · Due {formatDate(project.target_date, { month: "short", day: "numeric", year: "numeric" })}
                 </span>
               )}
-              <span className="ml-auto text-[12px] font-semibold text-[#1B3FEE]">{project.overall_progress ?? 0}% complete</span>
+              <span className="ml-auto text-[12px] font-semibold text-[#1B3FEE]">{donePct}% complete</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3.5">
@@ -187,16 +187,21 @@ export default async function PortalPage() {
                   <span className="text-[13px] font-bold text-[#0f172a]">Tasks</span>
                 </div>
                 <div className="p-[18px] flex flex-col gap-4">
-                  {milestones.map((ms: any) => (
+                  {milestones.map((ms: any) => {
+                    const msTasks = projectTasks.filter((t: any) => t.milestone?.id === ms.id || t.milestone_id === ms.id);
+                    const msDone = msTasks.filter((t: any) => t.status === "done").length;
+                    const msTotal = msTasks.length;
+                    const msProgress = msTotal > 0 ? Math.round((msDone / msTotal) * 100) : 0;
+                    return (
                     <div key={ms.id}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="text-[12.5px] font-semibold text-[#0f172a]">{ms.title}</div>
-                        <span className="text-[12px] font-bold text-[#475569]">{ms.progress}%</span>
+                        <span className="text-[12px] font-bold text-[#475569]">{msProgress}%</span>
                       </div>
                       <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-1.5">
                         <div
                           className="h-1.5 rounded-full transition-all duration-700"
-                          style={{ width: `${ms.progress}%`, background: ms.color ?? "#1B3FEE" }}
+                          style={{ width: `${msProgress}%`, background: ms.color ?? "#1B3FEE" }}
                         />
                       </div>
                       {ms.deadline && (
@@ -205,7 +210,8 @@ export default async function PortalPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                   {milestones.length === 0 && (
                     <p className="text-[13px] text-[#94a3b8]">No milestones set up yet.</p>
                   )}

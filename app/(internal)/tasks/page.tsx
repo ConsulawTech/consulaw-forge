@@ -162,7 +162,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                             {dlMs === "late" ? "Overdue" : formatDate(ms.deadline, { month: "short", day: "numeric" })}
                           </span>
                         )}
-                        <ProgressRing pct={ms.progress ?? 0} color={ms.color ?? "#1B3FEE"} size={36} />
+                        <ProgressRing pct={totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0} color={ms.color ?? "#1B3FEE"} size={36} />
                         <DeleteButton
                           entityId={ms.id}
                           entityName={ms.title}

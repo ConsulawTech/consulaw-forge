@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   const [{ data: clients }, { data: projects }, { data: tasks }, { data: profiles }] =
     await Promise.all([
       supabase.from("clients").select("id"),
-      supabase.from("projects").select("id").eq("status", "active"),
+      supabase.from("projects").select("*, milestones(*, tasks(*))").eq("status", "active"),
       supabase.from("tasks").select("*, assignee:profiles(*), project:projects(name, client:clients(name))").order("due_date"),
       supabase.from("profiles").select("id").eq("role", "team"),
     ]);
@@ -87,14 +87,32 @@ export default async function DashboardPage() {
                       Target: <strong className="text-white">{formatDate((projects[0] as any).target_date, { month: "short", year: "numeric" })}</strong>
                     </div>
                   )}
-                  <div className="bg-white/20 rounded-full h-1.5 mb-2.5">
-                    <div className="bg-white rounded-full h-1.5 relative" style={{ width: `${(projects[0] as any).overall_progress ?? 0}%` }}>
-                      <div className="absolute right-[-1px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-[rgba(27,63,238,0.5)]" />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-extrabold text-white tracking-tight">
-                    {(projects[0] as any).overall_progress ?? 0}% <span className="text-[13px] font-medium text-white/75">complete</span>
-                  </div>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {(() => {
+                    const p = projects[0] as any;
+                    const allCp = (p.milestones ?? []).flatMap((m: any) => m.tasks ?? []);
+                    const doneCp = allCp.filter((t: { status: string }) => t.status === "done").length;
+                    const progress = allCp.length > 0 ? Math.round((doneCp / allCp.length) * 100) : 0;
+                    return (
+                      <div className="bg-white/20 rounded-full h-1.5 mb-2.5">
+                        <div className="bg-white rounded-full h-1.5 relative" style={{ width: `${progress}%` }}>
+                          <div className="absolute right-[-1px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-[rgba(27,63,238,0.5)]" />
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {(() => {
+                    const p = projects[0] as any;
+                    const allCp = (p.milestones ?? []).flatMap((m: any) => m.tasks ?? []);
+                    const doneCp = allCp.filter((t: { status: string }) => t.status === "done").length;
+                    const progress = allCp.length > 0 ? Math.round((doneCp / allCp.length) * 100) : 0;
+                    return (
+                      <div className="text-2xl font-extrabold text-white tracking-tight">
+                        {progress}% <span className="text-[13px] font-medium text-white/75">complete</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="m-[18px] rounded-2xl p-5 text-center" style={{ background: "linear-gradient(135deg,#1B3FEE 0%,#7b8ef5 100%)" }}>
