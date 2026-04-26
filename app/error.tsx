@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { FileText, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export default function GlobalError({
   error,
@@ -56,12 +57,9 @@ export default function GlobalError({
           )}
 
           {!isMissingEnv && (
-            <button
-              onClick={reset}
-              className="mt-5 w-full py-2.5 bg-[#1B3FEE] text-white rounded-[10px] text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors"
-            >
+            <Button variant="primary" className="mt-5 w-full" onClick={reset}>
               Try again
-            </button>
+            </Button>
           )}
         </div>
       </div>

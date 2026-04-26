@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { AiTaskGeneratorModal } from "./AiTaskGeneratorModal";
 
 interface TeamProfile {
@@ -27,12 +28,9 @@ export function GenerateTasksButton({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-[rgba(139,92,246,0.1)] text-[#8b5cf6] border border-[rgba(139,92,246,0.2)] hover:bg-[rgba(139,92,246,0.18)] transition-all cursor-pointer"
-      >
+      <Button variant="accent" size="md" onClick={() => setOpen(true)}>
         <Sparkles className="w-3.5 h-3.5" /> Generate with AI
-      </button>
+      </Button>
 
       {open && (
         <AiTaskGeneratorModal

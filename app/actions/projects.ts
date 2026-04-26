@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { recalculateProgress } from "./progress";
 
 export async function createProjectAction(formData: FormData): Promise<{ success: true; projectId: string } | { success: false; error: string }> {
   const client_id = (formData.get("client_id") as string | null)?.trim();
@@ -48,9 +49,14 @@ export async function createTaskAction(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+
+  // Cascade recalculate progress
+  await recalculateProgress(milestoneId || null, projectId);
+
   revalidatePath("/tasks");
   revalidatePath("/projects");
   revalidatePath("/dashboard");
+  revalidatePath("/checkpoints");
   return { success: true };
 }
 
@@ -93,14 +99,30 @@ export async function updateTaskStatusAction(taskId: string, status: string) {
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
+
+  // Get current task to know its milestone and project
+  const { data: task } = await db
+    .from("tasks")
+    .select("milestone_id, project_id")
+    .eq("id", taskId)
+    .single();
+
   const { error } = await db
     .from("tasks")
     .update({ status })
     .eq("id", taskId);
 
   if (error) throw new Error(error.message);
+
+  // Cascade recalculate progress
+  if (task?.project_id) {
+    await recalculateProgress(task.milestone_id ?? null, task.project_id);
+  }
+
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
+  revalidatePath("/projects");
+  revalidatePath("/checkpoints");
   return { success: true };
 }
 
@@ -127,9 +149,21 @@ export async function deleteMilestoneAction(milestoneId: string): Promise<{ succ
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
 
+  // Get project_id before deleting
+  const { data: milestone } = await db
+    .from("milestones")
+    .select("project_id")
+    .eq("id", milestoneId)
+    .single();
+
   const { error } = await db.from("milestones").delete().eq("id", milestoneId);
 
   if (error) return { success: false, error: error.message };
+
+  // Cascade recalculate project progress (milestones cascade to tasks via SET NULL)
+  if (milestone?.project_id) {
+    await recalculateProgress(null, milestone.project_id);
+  }
 
   revalidatePath("/projects");
   revalidatePath("/tasks");
@@ -144,9 +178,21 @@ export async function deleteTaskAction(taskId: string): Promise<{ success: true 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
 
+  // Get task info before deleting for recalculation
+  const { data: task } = await db
+    .from("tasks")
+    .select("milestone_id, project_id")
+    .eq("id", taskId)
+    .single();
+
   const { error } = await db.from("tasks").delete().eq("id", taskId);
 
   if (error) return { success: false, error: error.message };
+
+  // Cascade recalculate progress
+  if (task?.project_id) {
+    await recalculateProgress(task.milestone_id ?? null, task.project_id);
+  }
 
   revalidatePath("/projects");
   revalidatePath("/tasks");
@@ -215,6 +261,9 @@ export async function bulkCreateProjectTasksAction(
   const { error: taskError } = await db.from("tasks").insert(taskInserts);
 
   if (taskError) return { success: false, error: taskError.message };
+
+  // Recalculate progress for the newly created tasks
+  await recalculateProgress(null, projectId);
 
   revalidatePath("/projects");
   revalidatePath(`/projects/${projectId}`);

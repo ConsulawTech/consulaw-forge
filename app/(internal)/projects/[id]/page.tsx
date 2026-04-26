@@ -47,7 +47,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const project = projectRaw as any;
   const dlStatus = deadlineStatus(project.target_date);
 
-  const projectForModal = [{ id: project.id, name: project.name, milestones: (project.milestones ?? []).map((m: any) => ({ id: m.id, title: m.title })) }];
+  const projectForModal = [{ id: project.id, name: project.name }];
   const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
   const teamProfilesForAi = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }));
 

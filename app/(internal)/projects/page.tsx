@@ -8,6 +8,7 @@ import { AddProjectButton } from "@/components/projects/AddProjectButton";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { deleteProjectAction } from "@/app/actions/projects";
 import { CheckCircle2, Circle, AlertCircle, Clock, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 function ProgressRing({ pct, color, size = 44 }: { pct: number; color: string; size?: number }) {
   const r = (size - 8) / 2;
@@ -53,8 +54,6 @@ export default async function ProjectsPage() {
   const projectsForModal = (projects ?? []).map((p: any) => ({
     id: p.id,
     name: p.name,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    milestones: (p.milestones ?? []).map((m: any) => ({ id: m.id, title: m.title })),
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
@@ -142,9 +141,9 @@ export default async function ProjectsPage() {
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto items-center">
                     <Link href={`/projects/${project.id}`} className="flex-1 sm:flex-none">
-                      <button className="w-full px-4 py-2 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors flex items-center justify-center gap-1.5">
+                      <Button variant="primary" size="md" className="w-full">
                         View Project <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
+                      </Button>
                     </Link>
                     <DeleteButton
                       entityId={project.id}
@@ -231,9 +230,9 @@ export default async function ProjectsPage() {
                         </div>
                         <div className="px-4 py-3.5 flex items-center">
                           <Link href={`/projects/${project.id}`}>
-                            <button className="text-[11px] font-semibold text-[#1B3FEE] bg-[rgba(27,63,238,0.08)] px-2.5 py-1 rounded-[7px] border border-[rgba(27,63,238,0.15)] cursor-pointer hover:bg-[rgba(27,63,238,0.14)] transition-colors whitespace-nowrap">
+                            <Button variant="ghost" size="sm">
                               Open →
-                            </button>
+                            </Button>
                           </Link>
                         </div>
                       </div>

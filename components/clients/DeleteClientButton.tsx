@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { Trash2, X, AlertTriangle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { deleteClientAction } from "@/app/actions/clients";
 import { useRouter } from "next/navigation";
 
 interface DeleteClientButtonProps {
   clientId: string;
   clientName: string;
-  /** "icon" = small trash icon only (for list cards), "button" = full labelled button (for detail page) */
   variant?: "icon" | "button";
 }
 
@@ -42,12 +42,9 @@ export function DeleteClientButton({ clientId, clientName, variant = "icon" }: D
           <Trash2 className="w-3.5 h-3.5 text-[#94a3b8] hover:text-[#ef4444]" />
         </button>
       ) : (
-        <button
-          onClick={() => setOpen(true)}
-          className="px-3.5 py-2 rounded-[10px] bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] text-[13px] font-semibold text-[#ef4444] hover:bg-[rgba(239,68,68,0.15)] cursor-pointer transition-colors"
-        >
+        <Button variant="danger" size="md" onClick={() => setOpen(true)}>
           Delete Client
-        </button>
+        </Button>
       )}
 
       {open && (
@@ -83,20 +80,12 @@ export function DeleteClientButton({ clientId, clientName, variant = "icon" }: D
               </p>
 
               <div className="flex gap-2">
-                <button
-                  onClick={() => setOpen(false)}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors disabled:opacity-60"
-                >
+                <Button variant="secondary" className="flex-1" onClick={() => setOpen(false)} disabled={loading}>
                   Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-[10px] bg-[#ef4444] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#dc2626] disabled:opacity-60 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Deleting…</> : "Delete permanently"}
-                </button>
+                </Button>
+                <Button variant="danger" className="flex-1" loading={loading} onClick={handleDelete}>
+                  {loading ? "Deleting…" : "Delete permanently"}
+                </Button>
               </div>
             </div>
           </div>

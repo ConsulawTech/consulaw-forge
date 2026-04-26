@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { User, Lock, Check, Loader2, ShieldCheck, LogOut, Eye, EyeOff } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
+import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { saveProfileAction, changePasswordAction } from "@/app/actions/settings";
 import { useRouter } from "next/navigation";
@@ -168,11 +169,7 @@ function ProfileTab({
             />
           </div>
           <div className="flex justify-end pt-1">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)] hover:bg-[#1535D4] disabled:opacity-60 transition-all cursor-pointer"
-            >
+            <Button type="submit" variant="primary" loading={saving}>
               {saving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : saved ? (
@@ -180,7 +177,7 @@ function ProfileTab({
               ) : (
                 "Save Changes"
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -270,13 +267,9 @@ function SecurityTab() {
             required
           />
           <div className="pt-1">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)] hover:bg-[#1535D4] disabled:opacity-60 transition-all cursor-pointer"
-            >
+            <Button type="submit" variant="primary" loading={saving}>
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Update Password"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -293,12 +286,9 @@ function SecurityTab() {
               <p className="text-[11px] text-[#94a3b8] mt-0.5">You are currently signed in on this device</p>
             </div>
           </div>
-          <button
-            onClick={signOut}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12.5px] font-semibold text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-          >
+          <Button variant="ghost" size="sm" onClick={signOut} className="text-red-500 hover:text-red-600 hover:bg-red-50">
             <LogOut className="w-3.5 h-3.5" /> Sign out
-          </button>
+          </Button>
         </div>
       </div>
     </div>

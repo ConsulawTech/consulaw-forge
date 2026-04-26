@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { X, FolderKanban, Check, Loader2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { createProjectAction } from "@/app/actions/projects";
 import { AiTaskGeneratorModal } from "./AiTaskGeneratorModal";
 
@@ -132,20 +133,12 @@ export function AddProjectModal({ clients, preselectedClientId, teamProfiles, on
             </div>
 
             <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors"
-              >
+              <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
                 Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] disabled:opacity-60 transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)] flex items-center justify-center gap-1.5"
-              >
-                {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating…</> : "Create Project"}
-              </button>
+              </Button>
+              <Button type="submit" variant="primary" className="flex-1" loading={loading}>
+                {loading ? "Creating…" : "Create Project"}
+              </Button>
             </div>
           </form>
         ) : (
@@ -160,18 +153,12 @@ export function AddProjectModal({ clients, preselectedClientId, teamProfiles, on
               </div>
             </div>
             <div className="flex flex-col gap-2 w-full">
-              <button
-                onClick={() => setShowAiModal(true)}
-                className="w-full py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)] flex items-center justify-center gap-1.5"
-              >
+              <Button variant="accent" className="w-full" onClick={() => setShowAiModal(true)}>
                 <Sparkles className="w-3.5 h-3.5" /> Generate with AI
-              </button>
-              <button
-                onClick={onClose}
-                className="w-full py-2.5 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors"
-              >
+              </Button>
+              <Button variant="secondary" className="w-full" onClick={onClose}>
                 Add Manually
-              </button>
+              </Button>
             </div>
           </div>
         )}

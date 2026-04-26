@@ -2,9 +2,10 @@
 
 import { useState, useRef } from "react";
 import { X, CheckSquare } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { createTaskAction } from "@/app/actions/projects";
 
-interface Project { id: string; name: string; milestones: { id: string; title: string }[] }
+interface Project { id: string; name: string }
 interface Profile { id: string; full_name: string }
 
 interface NewTaskModalProps {
@@ -19,8 +20,6 @@ export function NewTaskModal({ projects, profiles, defaultProjectId, onClose }: 
   const [error, setError] = useState("");
   const [selectedProject, setSelectedProject] = useState(defaultProjectId ?? projects[0]?.id ?? "");
   const formRef = useRef<HTMLFormElement>(null);
-
-  const milestones = projects.find((p) => p.id === selectedProject)?.milestones ?? [];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,19 +69,6 @@ export function NewTaskModal({ projects, profiles, defaultProjectId, onClose }: 
             </select>
           </div>
 
-          {milestones.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[12.5px] font-semibold text-[#0f172a]">Milestone <span className="font-normal text-[#94a3b8]">(optional)</span></label>
-              <select
-                name="milestone_id"
-                className="w-full px-3 py-2.5 text-[13px] rounded-xl bg-white/60 border border-white/50 outline-none focus:border-[#1B3FEE]/40 text-[#0f172a]"
-              >
-                <option value="">No milestone</option>
-                {milestones.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}
-              </select>
-            </div>
-          )}
-
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-[12.5px] font-semibold text-[#0f172a]">Assignee</label>
@@ -117,15 +103,13 @@ export function NewTaskModal({ projects, profiles, defaultProjectId, onClose }: 
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors">
+            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
               Cancel
-            </button>
-            <button type="submit" disabled={loading}
-              className="flex-1 py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] disabled:opacity-60 transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)] flex items-center justify-center gap-1.5">
+            </Button>
+            <Button type="submit" variant="primary" className="flex-1" loading={loading}>
               <CheckSquare className="w-3.5 h-3.5" />
               {loading ? "Creating…" : "Create Task"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { createMilestoneAction } from "@/app/actions/projects";
 
 interface Project { id: string; name: string }
@@ -12,7 +13,7 @@ interface AddMilestoneButtonProps {
   label?: string;
 }
 
-export function AddMilestoneButton({ projects, defaultProjectId, label = "Add Milestone" }: AddMilestoneButtonProps) {
+export function AddMilestoneButton({ projects, defaultProjectId, label = "Add Task" }: AddMilestoneButtonProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,12 +36,9 @@ export function AddMilestoneButton({ projects, defaultProjectId, label = "Add Mi
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] text-[13px] font-semibold bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)] hover:bg-[#1535D4] transition-all cursor-pointer"
-      >
+      <Button variant="primary" size="md" onClick={() => setOpen(true)}>
         <Plus className="w-3.5 h-3.5" /> {label}
-      </button>
+      </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
@@ -92,14 +90,12 @@ export function AddMilestoneButton({ projects, defaultProjectId, label = "Add Mi
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setOpen(false)}
-                  className="flex-1 py-2.5 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
                   Cancel
-                </button>
-                <button type="submit" disabled={loading}
-                  className="flex-1 py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] disabled:opacity-60 transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]">
+                </Button>
+                <Button type="submit" variant="primary" className="flex-1" loading={loading}>
                   {loading ? "Adding…" : label}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

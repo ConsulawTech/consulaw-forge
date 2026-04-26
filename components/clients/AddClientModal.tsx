@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { X, User, Mail, Check, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { createClientAction } from "@/app/actions/clients";
 
 interface AddClientModalProps {
@@ -75,20 +76,12 @@ export function AddClientModal({ onClose }: AddClientModalProps) {
             </div>
 
             <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-2.5 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors"
-              >
+              <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
                 Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] disabled:opacity-60 transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]"
-              >
+              </Button>
+              <Button type="submit" variant="primary" className="flex-1" loading={loading}>
                 {loading ? "Adding…" : "Create Client"}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -104,12 +97,9 @@ export function AddClientModal({ onClose }: AddClientModalProps) {
                 A welcome email with their login details and portal link has been sent.
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="w-full py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]"
-            >
+            <Button variant="primary" className="w-full" onClick={onClose}>
               Done
-            </button>
+            </Button>
           </div>
         )}
 
@@ -132,12 +122,9 @@ export function AddClientModal({ onClose }: AddClientModalProps) {
                 Open the client page and click <span className="font-semibold text-[#0f172a]">Resend Login Details</span> once the email issue is resolved.
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="w-full py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]"
-            >
+            <Button variant="primary" className="w-full" onClick={onClose}>
               Got it
-            </button>
+            </Button>
           </div>
         )}
       </div>

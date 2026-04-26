@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { X, Sparkles, Loader2, Check, Trash2, Plus, ChevronDown, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { generateProjectTasksAction, type AiTaskSuggestion } from "@/app/actions/ai";
 import { bulkCreateProjectTasksAction } from "@/app/actions/projects";
 
@@ -305,38 +306,20 @@ export function AiTaskGeneratorModal({
         {/* Footer */}
         {step === "review" && (
           <div className="px-6 py-4 border-t border-white/50 flex gap-2 flex-shrink-0">
-            <button
-              onClick={() => {
-                aborted.current = true;
-                onClose();
-                onDone();
-              }}
-              className="flex-1 py-2.5 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors"
-            >
+            <Button variant="secondary" className="flex-1" onClick={() => { aborted.current = true; onClose(); onDone(); }}>
               Skip & Add Manually
-            </button>
-            <button
-              onClick={handleApprove}
-              disabled={tasks.length === 0}
-              className="flex-1 py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] disabled:opacity-60 transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)] flex items-center justify-center gap-1.5"
-            >
+            </Button>
+            <Button variant="primary" className="flex-1" disabled={tasks.length === 0} onClick={handleApprove}>
               <Check className="w-3.5 h-3.5" /> Approve & Create
-            </button>
+            </Button>
           </div>
         )}
 
         {step === "done" && (
           <div className="px-6 py-4 border-t border-white/50 flex-shrink-0">
-            <button
-              onClick={() => {
-                aborted.current = true;
-                onClose();
-                onDone();
-              }}
-              className="w-full py-2.5 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]"
-            >
+            <Button variant="primary" className="w-full" onClick={() => { aborted.current = true; onClose(); onDone(); }}>
               Done
-            </button>
+            </Button>
           </div>
         )}
       </div>

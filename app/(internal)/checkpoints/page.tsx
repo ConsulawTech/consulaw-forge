@@ -34,7 +34,7 @@ export default async function CheckpointsPage({ searchParams }: { searchParams: 
 
   const [{ data: tasks }, { data: projectsRaw }, { data: profiles }] = await Promise.all([
     query,
-    supabase.from("projects").select("id, name, milestones(id, title)").order("created_at"),
+    supabase.from("projects").select("id, name").order("created_at"),
     supabase.from("profiles").select("id, full_name").eq("role", "team"),
   ]);
 
@@ -42,8 +42,6 @@ export default async function CheckpointsPage({ searchParams }: { searchParams: 
   const projectsForModal = (projectsRaw ?? []).map((p: any) => ({
     id: p.id,
     name: p.name,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    milestones: (p.milestones ?? []).map((m: any) => ({ id: m.id, title: m.title })),
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));

@@ -5,8 +5,8 @@ import { Loader2 } from "lucide-react";
 import type { ButtonHTMLAttributes } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "danger";
-  size?: "sm" | "md" | "lg";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "accent" | "success" | "outline";
+  size?: "sm" | "md" | "lg" | "icon";
   loading?: boolean;
 }
 
@@ -30,13 +30,20 @@ export function Button({
     ghost:
       "bg-transparent text-[#475569] hover:bg-white/60 hover:text-[#0f172a] active:scale-[0.98]",
     danger:
-      "bg-red-500 text-white hover:bg-red-600 shadow-[0_2px_8px_rgba(239,68,68,0.25)] active:scale-[0.98]",
+      "bg-[#ef4444] text-white hover:bg-[#dc2626] shadow-[0_2px_8px_rgba(239,68,68,0.25)] active:scale-[0.98]",
+    accent:
+      "bg-[#8b5cf6] text-white shadow-[0_2px_8px_rgba(139,92,246,0.25)] hover:bg-[#7c3aed] hover:-translate-y-px hover:shadow-[0_4px_14px_rgba(139,92,246,0.35)] active:scale-[0.98]",
+    success:
+      "bg-[#10b981] text-white shadow-[0_2px_8px_rgba(16,185,129,0.25)] hover:bg-[#059669] active:scale-[0.98]",
+    outline:
+      "bg-transparent border border-dashed border-[rgba(27,63,238,0.3)] text-[#1B3FEE] hover:bg-[rgba(27,63,238,0.06)] active:scale-[0.98]",
   };
 
   const sizes = {
     sm: "text-xs px-3 py-1.5 gap-1.5",
-    md: "text-sm px-4 py-2",
+    md: "text-[13px] px-4 py-2 gap-1.5",
     lg: "text-base px-6 py-3",
+    icon: "p-2 gap-0",
   };
 
   return (
