@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { ChatWidget } from "@/components/portal/ChatWidget";
 import { formatDate } from "@/lib/utils";
 import { Activity, CheckSquare, Users, Clock, CheckCircle2, AlertCircle, Circle, FolderKanban } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import Link from "next/link";
 
 export default async function PortalPage() {
   const supabase = await createClient();
@@ -35,8 +35,8 @@ export default async function PortalPage() {
   const projects: any[] = client.projects ?? [];
   const projectIds = projects.map((p: any) => p.id).filter(Boolean);
 
-  // Fetch tasks + updates for ALL projects, messages for first project
-  const [{ data: allTasksRaw }, { data: allUpdatesRaw }, { data: messages }] = await Promise.all([
+  // Fetch tasks + updates for ALL projects
+  const [{ data: allTasksRaw }, { data: allUpdatesRaw }] = await Promise.all([
     projectIds.length > 0
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? (supabase as any)
@@ -52,14 +52,6 @@ export default async function PortalPage() {
           .in("project_id", projectIds as string[])
           .order("created_at", { ascending: false })
           .limit(6)
-      : Promise.resolve({ data: [] }),
-    projects[0]
-      ? supabase
-          .from("messages")
-          .select("*")
-          .eq("project_id", projects[0].id)
-          .order("created_at")
-          .limit(30)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -326,12 +318,21 @@ export default async function PortalPage() {
         </div>
       )}
 
-      {/* Chat widget — tied to first project */}
+      {/* Message CTA */}
       {projects[0] && (
-        <ChatWidget
-          projectId={projects[0].id}
-          initialMessages={messages ?? []}
-        />
+        <div className="glass rounded-2xl p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-[12px] bg-[rgba(27,63,238,0.1)] flex items-center justify-center flex-shrink-0">
+            <Users className="w-5 h-5 text-[#1B3FEE]" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[14px] font-bold text-[#0f172a]">Have a question?</div>
+            <div className="text-[12.5px] text-[#475569]">Message your Consulaw Tech team directly.</div>
+          </div>
+          <Link href="/portal/messages"
+            className="px-4 py-2 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold hover:bg-[#1535D4] transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)] flex-shrink-0">
+            Open Messages
+          </Link>
+        </div>
       )}
     </div>
   );
