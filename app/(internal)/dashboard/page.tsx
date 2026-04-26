@@ -50,10 +50,10 @@ export default async function DashboardPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          <StatCard icon={Users} iconColor="blue" value={clients?.length ?? 0} label="Active Clients" tag="+1 new" tagVariant="up" />
-          <StatCard icon={FolderKanban} iconColor="green" value={projects?.length ?? 0} label="Projects in Progress" tag="Active" tagVariant="info" />
-          <StatCard icon={UserCheck} iconColor="gold" value={profiles?.length ?? 0} label="Team Members" tag="Full team" tagVariant="gold" />
-          <StatCard icon={AlertCircle} iconColor="red" value={delays} label="Delays" tag={delays > 0 ? "Needs action" : "On track"} tagVariant={delays > 0 ? "warn" : "up"} />
+          <StatCard icon={Users} iconColor="blue" value={clients?.length ?? 0} label="Active Clients" tag="+1 new" tagVariant="up" href="/clients" />
+          <StatCard icon={FolderKanban} iconColor="green" value={projects?.length ?? 0} label="Projects in Progress" tag="Active" tagVariant="info" href="/projects" />
+          <StatCard icon={UserCheck} iconColor="gold" value={profiles?.length ?? 0} label="Team Members" tag="Full team" tagVariant="gold" href="/clients" />
+          <StatCard icon={AlertCircle} iconColor="red" value={delays} label="Delays" tag={delays > 0 ? "Needs action" : "On track"} tagVariant={delays > 0 ? "warn" : "up"} href="/tasks?status=late" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_330px] gap-3.5">

@@ -258,8 +258,9 @@ export function PortalTimelineReplay({ projects }: { projects: ProjectOption[] }
   }
 
   const days = Math.round((pct / 100) * totalDays);
-  const done = tasks.filter((t) => taskState(t, pct) === "done").length;
-  const active = tasks.filter((t) => taskState(t, pct) === "active").length;
+  const animating = playing || pct > 0;
+  const done = tasks.filter((t) => animating ? taskState(t, pct) === "done"   : t.phase === "done").length;
+  const active = tasks.filter((t) => animating ? taskState(t, pct) === "active" : t.phase === "in_progress").length;
   const overallPct = tasks.length ? Math.round(((done + active * 0.5) / tasks.length) * 100) : 0;
   const visibleActivities = activities.filter((a) => days >= a.day);
   const labelDates = [0, 33, 66, 100].map((p) => {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
@@ -8,6 +9,7 @@ interface StatCardProps {
   label: string;
   tag?: string;
   tagVariant?: "up" | "warn" | "info" | "gold" | "neutral";
+  href?: string;
 }
 
 const iconColors = {
@@ -26,9 +28,9 @@ const tagColors = {
   neutral: "bg-slate-100/90 text-slate-600",
 };
 
-export function StatCard({ icon: Icon, iconColor, value, label, tag, tagVariant = "neutral" }: StatCardProps) {
-  return (
-    <div className="glass rounded-2xl p-4 transition-transform duration-150 hover:-translate-y-0.5 cursor-default">
+export function StatCard({ icon: Icon, iconColor, value, label, tag, tagVariant = "neutral", href }: StatCardProps) {
+  const inner = (
+    <>
       <div className="flex items-center justify-between mb-3">
         <div className={cn("w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0", iconColors[iconColor])}>
           <Icon className="w-4 h-4" />
@@ -43,6 +45,20 @@ export function StatCard({ icon: Icon, iconColor, value, label, tag, tagVariant 
         {value}
       </div>
       <div className="text-xs text-[#475569] mt-1">{label}</div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="glass rounded-2xl p-4 block transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md cursor-pointer">
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="glass rounded-2xl p-4 transition-transform duration-150 hover:-translate-y-0.5 cursor-default">
+      {inner}
     </div>
   );
 }
