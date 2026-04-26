@@ -74,6 +74,61 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
   return { success: true };
 }
 
+export async function resendClientCredentialsAction(clientId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: clientRow } = await (supabase as any)
+    .from("clients")
+    .select("name, email, profile_id")
+    .eq("id", clientId)
+    .single();
+
+  if (!clientRow?.email) return { success: false, error: "No email address on file for this client." };
+
+  const admin = createAdminClient();
+  const tempPassword = generateTempPassword();
+
+  if (clientRow.profile_id) {
+    // Reset existing auth user's password
+    const { error } = await admin.auth.admin.updateUserById(clientRow.profile_id, {
+      password: tempPassword,
+    });
+    if (error) return { success: false, error: error.message };
+  } else {
+    // No auth account yet — create one now and link it
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email: clientRow.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { full_name: clientRow.name, role: "client" },
+    });
+    if (authError) return { success: false, error: authError.message };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any)
+      .from("clients")
+      .update({ profile_id: authData.user.id })
+      .eq("id", clientId);
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://consulaw-forge.vercel.app";
+  const html = clientWelcomeEmail({
+    clientName: clientRow.name,
+    email: clientRow.email,
+    tempPassword,
+    portalUrl: `${appUrl}/portal`,
+  });
+  const emailResult = await sendEmail({
+    to: clientRow.email,
+    subject: "Your Consulaw client portal — updated login details",
+    html,
+  });
+
+  if (!emailResult.ok) return { success: false, error: `Email failed: ${emailResult.reason}` };
+  return { success: true };
+}
+
 export async function deleteClientAction(clientId: string): Promise<ActionResult> {
   const supabase = await createClient();
 

@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { ChatWidget } from "@/components/portal/ChatWidget";
 import { AddProjectButton } from "@/components/projects/AddProjectButton";
 import { DeleteClientButton } from "@/components/clients/DeleteClientButton";
+import { ResendCredentialsButton } from "@/components/clients/ResendCredentialsButton";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -53,6 +54,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <p className="text-[13px] text-[#475569] mt-0.5">{client.name} · {project?.name}</p>
           </div>
           <div className="flex gap-2">
+            <ResendCredentialsButton clientId={client.id} />
             <DeleteClientButton clientId={client.id} clientName={client.name} variant="button" />
             {project?.id ? (
               <Link href={`/projects/${project.id}`}>
