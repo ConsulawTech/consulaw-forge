@@ -26,7 +26,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <Topbar tabs={["Overview", "Board", "Timeline", "Reports"]} activeTab="Overview" />
+      <Topbar tabs={[
+        { label: "Overview",  href: "/dashboard" },
+        { label: "Board",     href: "/tasks" },
+        { label: "Timeline",  href: "/timeline" },
+        { label: "Reports",   href: "/projects" },
+      ]} />
       <div className="flex-1 overflow-y-auto p-4 md:p-6 [scrollbar-width:thin] [scrollbar-color:rgba(27,63,238,0.15)_transparent]">
 
         {/* Page header */}

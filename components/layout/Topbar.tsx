@@ -16,10 +16,13 @@ interface SearchResult {
   href: string;
 }
 
+interface TabLink {
+  label: string;
+  href: string;
+}
+
 interface TopbarProps {
-  tabs?: string[];
-  activeTab?: string;
-  onTabChange?: (tab: string) => void;
+  tabs?: TabLink[];
 }
 
 const MOBILE_NAV = [
@@ -31,7 +34,7 @@ const MOBILE_NAV = [
   { href: "/timeline",  icon: Play,            label: "Timeline Replay" },
 ];
 
-export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
+export function Topbar({ tabs }: TopbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -176,25 +179,28 @@ export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
         <Menu className="w-4 h-4 text-[#475569]" />
       </button>
 
-      {/* Tabs */}
+      {/* Tabs — hidden on mobile to avoid header overflow */}
       {tabs && tabs.length > 0 && (
         <>
-          <div className="flex gap-px bg-[rgba(241,245,249,0.8)] rounded-[10px] p-[3px] border border-white/50">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => onTabChange?.(tab)}
-                className={
-                  tab === activeTab
-                    ? "px-3 py-[5px] rounded-lg text-[12.5px] font-semibold text-[#0f172a] bg-white/90 shadow-[0_1px_4px_rgba(0,0,0,0.08)] cursor-pointer"
-                    : "px-3 py-[5px] rounded-lg text-[12.5px] font-medium text-[#475569] cursor-pointer hover:text-[#0f172a] transition-colors"
-                }
-              >
-                {tab}
-              </button>
-            ))}
+          <div className="hidden md:flex gap-px bg-[rgba(241,245,249,0.8)] rounded-[10px] p-[3px] border border-white/50">
+            {tabs.map((tab) => {
+              const active = pathname === tab.href || pathname.startsWith(tab.href + "/");
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={
+                    active
+                      ? "px-3 py-[5px] rounded-lg text-[12.5px] font-semibold text-[#0f172a] bg-white/90 shadow-[0_1px_4px_rgba(0,0,0,0.08)]"
+                      : "px-3 py-[5px] rounded-lg text-[12.5px] font-medium text-[#475569] hover:text-[#0f172a] transition-colors"
+                  }
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
           </div>
-          <div className="w-px h-[22px] bg-[rgba(203,213,225,0.4)] mx-1" />
+          <div className="hidden md:block w-px h-[22px] bg-[rgba(203,213,225,0.4)] mx-1" />
         </>
       )}
 
@@ -376,9 +382,10 @@ export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
         {/* New Task */}
         <button
           onClick={openNewTask}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)] hover:bg-[#1535D4] hover:-translate-y-px transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-2.5 md:px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)] hover:bg-[#1535D4] hover:-translate-y-px transition-all cursor-pointer"
         >
-          <Plus className="w-3.5 h-3.5" /> New Task
+          <Plus className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="hidden sm:inline">New Task</span>
         </button>
       </div>
 
