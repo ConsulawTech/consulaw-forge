@@ -12,6 +12,15 @@ export interface AiTaskSuggestion {
   checkpoints: { title: string; assigneeRoleHint: string }[];
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 export async function generateProjectTasksAction(
   projectName: string,
   projectDescription: string | null,
@@ -50,15 +59,19 @@ Instructions:
 If no team members are available, use empty string for assigneeRoleHint.`;
 
   try {
-    const response = await deepseek.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        { role: "system", content: "You are a helpful project management assistant that outputs only valid JSON." },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
+    const response = await withTimeout(
+      deepseek.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "You are a helpful project management assistant that outputs only valid JSON." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+      20000,
+      "DeepSeek API call"
+    );
 
     const content = response.choices[0]?.message?.content?.trim() ?? "";
     if (!content) {

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Sparkles, Loader2, Check, Trash2, Plus, ChevronDown, User } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Sparkles, Loader2, Check, Trash2, Plus, ChevronDown, AlertCircle } from "lucide-react";
 import { generateProjectTasksAction, type AiTaskSuggestion } from "@/app/actions/ai";
 import { bulkCreateProjectTasksAction } from "@/app/actions/projects";
 
@@ -36,9 +36,11 @@ export function AiTaskGeneratorModal({
   const [step, setStep] = useState<"generating" | "review" | "creating" | "done">("generating");
   const [error, setError] = useState("");
   const [tasks, setTasks] = useState<EditableTask[]>([]);
+  const aborted = useRef(false);
 
   useEffect(() => {
     generateTasks();
+    return () => { aborted.current = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -47,6 +49,8 @@ export function AiTaskGeneratorModal({
     setError("");
 
     const result = await generateProjectTasksAction(projectName, projectDescription, teamProfiles);
+
+    if (aborted.current) return;
 
     if (!result.success) {
       setError(result.error);
@@ -149,6 +153,11 @@ export function AiTaskGeneratorModal({
     );
   }
 
+  const headerTitle =
+    step === "generating" ? "AI Task Generation" :
+    step === "creating" ? "Creating Tasks…" :
+    step === "done" ? "Tasks Created" : "Review AI Suggestions";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="glass rounded-2xl w-full max-w-[640px] mx-4 overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.15)] flex flex-col max-h-[85vh]">
@@ -158,18 +167,17 @@ export function AiTaskGeneratorModal({
             <div className="w-7 h-7 rounded-[8px] bg-[rgba(27,63,238,0.1)] flex items-center justify-center">
               <Sparkles className="w-3.5 h-3.5 text-[#1B3FEE]" />
             </div>
-            <span className="text-[15px] font-bold text-[#0f172a]">
-              {step === "generating" ? "AI Task Generation" : step === "done" ? "Tasks Created" : "Review AI Suggestions"}
-            </span>
+            <span className="text-[15px] font-bold text-[#0f172a]">{headerTitle}</span>
           </div>
-          {step !== "creating" && (
-            <button
-              onClick={onClose}
-              className="w-7 h-7 rounded-[8px] bg-white/60 border border-white/50 flex items-center justify-center hover:bg-white/80 transition-colors cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5 text-[#475569]" />
-            </button>
-          )}
+          <button
+            onClick={() => {
+              aborted.current = true;
+              onClose();
+            }}
+            className="w-7 h-7 rounded-[8px] bg-white/60 border border-white/50 flex items-center justify-center hover:bg-white/80 transition-colors cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5 text-[#475569]" />
+          </button>
         </div>
 
         {/* Content */}
@@ -179,16 +187,21 @@ export function AiTaskGeneratorModal({
               <Loader2 className="w-8 h-8 text-[#1B3FEE] animate-spin mb-4" />
               <div className="text-[15px] font-semibold text-[#0f172a]">Generating tasks with AI…</div>
               <p className="text-[13px] text-[#475569] mt-1">
-                Analyzing "{projectName}" to create tasks and checkpoints.
+                Analyzing &quot;{projectName}&quot; to create tasks and checkpoints.
               </p>
+              <p className="text-[12px] text-[#94a3b8] mt-4">This usually takes 5–15 seconds.</p>
             </div>
           )}
 
           {step === "review" && (
             <div className="flex flex-col gap-5">
               {error && (
-                <div className="text-[12.5px] text-[#ef4444] bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl px-3 py-2">
-                  {error}
+                <div className="flex items-start gap-2 text-[12.5px] text-[#ef4444] bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl px-3 py-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Generation failed</p>
+                    <p>{error}</p>
+                  </div>
                 </div>
               )}
 
@@ -294,6 +307,7 @@ export function AiTaskGeneratorModal({
           <div className="px-6 py-4 border-t border-white/50 flex gap-2 flex-shrink-0">
             <button
               onClick={() => {
+                aborted.current = true;
                 onClose();
                 onDone();
               }}
@@ -315,6 +329,7 @@ export function AiTaskGeneratorModal({
           <div className="px-6 py-4 border-t border-white/50 flex-shrink-0">
             <button
               onClick={() => {
+                aborted.current = true;
                 onClose();
                 onDone();
               }}
