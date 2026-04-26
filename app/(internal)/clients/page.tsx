@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { AddClientButton } from "@/components/clients/AddClientButton";
+import { DeleteClientButton } from "@/components/clients/DeleteClientButton";
 
 export default async function ClientsPage() {
   const supabase = await createClient();
@@ -31,48 +32,54 @@ export default async function ClientsPage() {
             const project = client.projects?.[0];
             const progress = project?.overall_progress ?? 0;
             return (
-              <Link key={client.id} href={`/clients/${client.id}`}>
-                <div className="glass rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 transition-all duration-150">
-                  <div className="flex items-start gap-3.5 mb-4">
-                    <div
-                      className="w-12 h-12 rounded-[14px] flex items-center justify-center text-xl font-black text-white flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
-                      style={{ background: client.logo_color ?? "#e50914" }}
-                    >
-                      {client.logo_letter ?? client.name[0]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-bold text-[#0f172a]">{client.name}</div>
-                      <div className="text-[12px] text-[#1B3FEE] font-medium mt-0.5 truncate">
-                        {project?.name ?? "No active project"}
+              <div key={client.id} className="relative group">
+                <Link href={`/clients/${client.id}`}>
+                  <div className="glass rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 transition-all duration-150">
+                    <div className="flex items-start gap-3.5 mb-4">
+                      <div
+                        className="w-12 h-12 rounded-[14px] flex items-center justify-center text-xl font-black text-white flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+                        style={{ background: client.logo_color ?? "#e50914" }}
+                      >
+                        {client.logo_letter ?? client.name[0]}
                       </div>
-                      {client.email && (
-                        <div className="text-[11px] text-[#94a3b8] truncate">{client.email}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[15px] font-bold text-[#0f172a]">{client.name}</div>
+                        <div className="text-[12px] text-[#1B3FEE] font-medium mt-0.5 truncate">
+                          {project?.name ?? "No active project"}
+                        </div>
+                        {client.email && (
+                          <div className="text-[11px] text-[#94a3b8] truncate">{client.email}</div>
+                        )}
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-[#94a3b8] flex-shrink-0 mt-0.5" />
+                    </div>
+
+                    <div className="mb-3">
+                      <div className="flex justify-between text-[11px] font-semibold text-[#475569] mb-1.5">
+                        <span>Overall Progress</span>
+                        <span>{progress}%</span>
+                      </div>
+                      <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-1.5">
+                        <div
+                          className="h-1.5 rounded-full bg-[#1B3FEE] transition-all"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-[#94a3b8]">
+                      <span>{client.projects?.length ?? 0} project{client.projects?.length !== 1 ? "s" : ""}</span>
+                      {project?.target_date && (
+                        <span>Due {formatDate(project.target_date, { month: "short", year: "numeric" })}</span>
                       )}
                     </div>
-                    <ExternalLink className="w-4 h-4 text-[#94a3b8] flex-shrink-0 mt-0.5" />
                   </div>
-
-                  <div className="mb-3">
-                    <div className="flex justify-between text-[11px] font-semibold text-[#475569] mb-1.5">
-                      <span>Overall Progress</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-1.5">
-                      <div
-                        className="h-1.5 rounded-full bg-[#1B3FEE] transition-all"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-[#94a3b8]">
-                    <span>{client.projects?.length ?? 0} project{client.projects?.length !== 1 ? "s" : ""}</span>
-                    {project?.target_date && (
-                      <span>Due {formatDate(project.target_date, { month: "short", year: "numeric" })}</span>
-                    )}
-                  </div>
+                </Link>
+                {/* Delete button — visible on hover */}
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <DeleteClientButton clientId={client.id} clientName={client.name} variant="icon" />
                 </div>
-              </Link>
+              </div>
             );
           })}
 

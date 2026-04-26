@@ -3,6 +3,28 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+export async function createProjectAction(formData: FormData): Promise<{ success: true } | { success: false; error: string }> {
+  const client_id = (formData.get("client_id") as string | null)?.trim();
+  const name = (formData.get("name") as string | null)?.trim();
+  const description = (formData.get("description") as string | null)?.trim() || null;
+  const target_date = (formData.get("target_date") as string | null) || null;
+
+  if (!client_id || !name) return { success: false, error: "Client and project name are required." };
+
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from("projects")
+    .insert({ client_id, name, description, target_date, status: "active", overall_progress: 0 });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/projects");
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${client_id}`);
+  return { success: true };
+}
+
 export async function createTaskAction(formData: FormData) {
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -5,6 +5,7 @@ import { Edit, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { AddMilestoneButton } from "@/components/projects/AddMilestoneButton";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
+import { AddProjectButton } from "@/components/projects/AddProjectButton";
 
 function ProgressRing({ pct, color }: { pct: number; color: string }) {
   const r = 16;
@@ -30,12 +31,13 @@ function ProgressRing({ pct, color }: { pct: number; color: string }) {
 
 export default async function ProjectsPage() {
   const supabase = await createClient();
-  const [{ data: projects }, { data: profiles }] = await Promise.all([
+  const [{ data: projects }, { data: profiles }, { data: clients }] = await Promise.all([
     supabase
       .from("projects")
       .select("*, client:clients(*), milestones(*, tasks(*))")
       .order("created_at"),
     supabase.from("profiles").select("id, full_name").eq("role", "team"),
+    supabase.from("clients").select("id, name").order("created_at"),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,6 +63,8 @@ export default async function ProjectsPage() {
             <NewTaskButton projects={projectsForModal} profiles={profilesForModal} label="Schedule Task" variant="secondary" />
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <AddMilestoneButton projects={(projects ?? []).map((p: any) => ({ id: p.id, name: p.name }))} />
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <AddProjectButton clients={(clients ?? []).map((c: any) => ({ id: c.id, name: c.name }))} />
           </div>
         </div>
 

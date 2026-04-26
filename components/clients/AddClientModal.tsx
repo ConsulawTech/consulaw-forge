@@ -105,7 +105,7 @@ export function AddClientModal({ onClose }: AddClientModalProps) {
             <div>
               <div className="text-[15px] font-bold text-[#0f172a]">Client created</div>
               <div className="text-[13px] text-[#475569] mt-1">
-                They&apos;ve been added to your clients list.
+                A welcome email with their login details and portal link has been sent.
               </div>
             </div>
             <button

@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ChatWidget } from "@/components/portal/ChatWidget";
+import { AddProjectButton } from "@/components/projects/AddProjectButton";
+import { DeleteClientButton } from "@/components/clients/DeleteClientButton";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,11 +53,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <p className="text-[13px] text-[#475569] mt-0.5">{client.name} · {project?.name}</p>
           </div>
           <div className="flex gap-2">
-            <Link href={`/portal`}>
-              <button className="px-3.5 py-2 rounded-[10px] bg-white/65 border border-white/60 text-[13px] font-semibold text-[#475569] hover:bg-white/85 cursor-pointer transition-colors">
-                Client Portal View
-              </button>
-            </Link>
+            <DeleteClientButton clientId={client.id} clientName={client.name} variant="button" />
             {project?.id ? (
               <Link href={`/projects/${project.id}`}>
                 <button className="px-3.5 py-2 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors">
@@ -63,9 +61,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 </button>
               </Link>
             ) : (
-              <button className="px-3.5 py-2 rounded-[10px] bg-[#1B3FEE] text-white text-[13px] font-semibold cursor-pointer hover:bg-[#1535D4] transition-colors opacity-60" disabled>
-                + Schedule Task
-              </button>
+              <AddProjectButton
+                clients={[{ id: client.id, name: client.name }]}
+                preselectedClientId={client.id}
+                label="Add Project"
+              />
             )}
           </div>
         </div>
@@ -103,9 +103,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     </button>
                   </Link>
                 ) : (
-                  <button className="w-full py-2.5 bg-[#1B3FEE] text-white rounded-[10px] text-[13px] font-semibold opacity-60 transition-colors shadow-[0_2px_8px_rgba(27,63,238,0.25)]" disabled>
-                    Schedule Tasks
-                  </button>
+                  <AddProjectButton
+                    clients={[{ id: client.id, name: client.name }]}
+                    preselectedClientId={client.id}
+                    label="Add Project"
+                    variant="primary"
+                  />
                 )}
               </div>
 
