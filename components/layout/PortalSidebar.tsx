@@ -18,6 +18,29 @@ interface PortalSidebarProps {
   clientName: string;
 }
 
+export function PortalBottomNav() {
+  const pathname = usePathname();
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/50 flex">
+      {NAV.map(({ href, icon: Icon, label }) => {
+        const active = pathname === href;
+        return (
+          <Link
+            key={href}
+            href={href}
+            className={`flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-semibold transition-colors ${
+              active ? "text-[#1B3FEE]" : "text-[#94a3b8]"
+            }`}
+          >
+            <Icon className={`w-5 h-5 ${active ? "text-[#1B3FEE]" : "text-[#94a3b8]"}`} strokeWidth={1.8} />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function PortalSidebar({ profile, clientName }: PortalSidebarProps) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -29,7 +52,7 @@ export function PortalSidebar({ profile, clientName }: PortalSidebarProps) {
   }
 
   return (
-    <aside className="w-[220px] flex-shrink-0 h-full flex flex-col glass border-r border-white/50 shadow-[1px_0_0_rgba(255,255,255,0.8)]">
+    <aside className="hidden md:flex w-[220px] flex-shrink-0 h-full flex-col glass border-r border-white/50 shadow-[1px_0_0_rgba(255,255,255,0.8)]">
       {/* Logo / brand */}
       <div className="px-5 py-5 border-b border-white/50">
         <div className="flex items-center gap-2.5">

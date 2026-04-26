@@ -9,6 +9,7 @@ import {
   CheckSquare,
   Play,
   Users,
+  MessageSquare,
   Plus,
   FileText,
   MoreHorizontal,
@@ -23,11 +24,12 @@ interface SidebarProps {
 }
 
 const NAV_WORKSPACE = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/timeline", label: "Timeline Replay", icon: Play, badge: "New", badgeVariant: "blue" as const },
+  { href: "/dashboard", label: "Dashboard",       icon: LayoutDashboard },
+  { href: "/projects",  label: "Projects",         icon: FolderKanban },
+  { href: "/tasks",     label: "Tasks",            icon: CheckSquare },
+  { href: "/messages",  label: "Messages",         icon: MessageSquare },
+  { href: "/clients",   label: "Clients",          icon: Users },
+  { href: "/timeline",  label: "Timeline Replay",  icon: Play, badge: "New", badgeVariant: "blue" as const },
 ];
 
 export function Sidebar({ profile, clients }: SidebarProps) {
@@ -35,7 +37,7 @@ export function Sidebar({ profile, clients }: SidebarProps) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className="w-[232px] min-w-[232px] flex flex-col h-screen glass border-r border-white/50 overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.04)]">
+    <aside className="hidden lg:flex w-[232px] min-w-[232px] flex-col h-screen glass border-r border-white/50 overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.04)]">
       {/* Logo */}
       <div className="px-[18px] py-5 flex items-center gap-3 border-b border-white/40">
         <div className="w-[34px] h-[34px] bg-[#1B3FEE] rounded-[9px] flex items-center justify-center flex-shrink-0 shadow-[0_4px_12px_rgba(27,63,238,0.3)]">

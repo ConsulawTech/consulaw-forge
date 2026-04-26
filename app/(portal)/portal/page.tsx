@@ -85,7 +85,7 @@ export default async function PortalPage() {
   const members = Array.from(memberMap.values());
 
   return (
-    <div className="h-full overflow-y-auto p-6 [scrollbar-width:thin] relative z-10 pb-24">
+    <div className="h-full overflow-y-auto p-4 md:p-6 [scrollbar-width:thin] relative z-10 pb-24">
 
       {/* Welcome Banner */}
       <div
@@ -127,7 +127,7 @@ export default async function PortalPage() {
 
       {/* Stats Row */}
       {allTasks.length > 0 && (
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           {[
             { label: "Total Tasks",  value: allTasks.length,   icon: Circle,       color: "#94a3b8", bg: "rgba(148,163,184,0.1)"  },
             { label: "Completed",    value: doneTasks,          icon: CheckCircle2, color: "#10b981", bg: "rgba(16,185,129,0.1)"   },
@@ -177,7 +177,7 @@ export default async function PortalPage() {
               <span className="ml-auto text-[12px] font-semibold text-[#1B3FEE]">{project.overall_progress ?? 0}% complete</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3.5 mb-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3.5">
               {/* Milestones */}
               <div className="glass rounded-2xl overflow-hidden">
                 <div className="flex items-center gap-2 px-[18px] py-3.5 border-b border-white/50">

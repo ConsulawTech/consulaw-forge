@@ -17,7 +17,7 @@ export default async function ClientsPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Topbar />
-      <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:thin]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 [scrollbar-width:thin]">
         <div className="flex items-end justify-between mb-5">
           <div>
             <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">Clients</h1>
@@ -26,7 +26,7 @@ export default async function ClientsPage() {
           <AddClientButton />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {(clients ?? []).map((client: any) => {
             const projects: any[] = client.projects ?? [];

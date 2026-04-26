@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Topbar tabs={["Overview", "Board", "Timeline", "Reports"]} activeTab="Overview" />
-      <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:thin] [scrollbar-color:rgba(27,63,238,0.15)_transparent]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 [scrollbar-width:thin] [scrollbar-color:rgba(27,63,238,0.15)_transparent]">
 
         {/* Page header */}
         <div className="flex items-end justify-between mb-5">
@@ -49,14 +49,14 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <StatCard icon={Users} iconColor="blue" value={clients?.length ?? 0} label="Active Clients" tag="+1 new" tagVariant="up" />
           <StatCard icon={FolderKanban} iconColor="green" value={projects?.length ?? 0} label="Projects in Progress" tag="Active" tagVariant="info" />
           <StatCard icon={UserCheck} iconColor="gold" value={profiles?.length ?? 0} label="Team Members" tag="Full team" tagVariant="gold" />
           <StatCard icon={AlertCircle} iconColor="red" value={delays} label="Delays" tag={delays > 0 ? "Needs action" : "On track"} tagVariant={delays > 0 ? "warn" : "up"} />
         </div>
 
-        <div className="grid grid-cols-[1fr_330px] gap-3.5">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_330px] gap-3.5">
           {/* Left column */}
           <div className="flex flex-col gap-3.5">
             {/* Goal Banner */}

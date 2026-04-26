@@ -1,24 +1,38 @@
 import { createClient } from "@/lib/supabase/server";
 import { Topbar } from "@/components/layout/Topbar";
-import { TaskStatusBadge } from "@/components/ui/Badge";
 import { formatDate, getAvatarColor } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
+import { TaskStatusSelect } from "@/components/tasks/TaskStatusSelect";
+import Link from "next/link";
+import type { TaskStatus } from "@/lib/types";
 
-export default async function TasksPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams;
+const STATUS_TABS: { value: string; label: string; color?: string }[] = [
+  { value: "all",         label: "All" },
+  { value: "todo",        label: "To Do" },
+  { value: "in_progress", label: "In Progress", color: "#1B3FEE" },
+  { value: "done",        label: "Done",        color: "#10b981" },
+  { value: "late",        label: "Late",        color: "#f59f00" },
+];
+
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; project?: string }> }) {
+  const { q, status, project: projectFilter } = await searchParams;
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
 
+  let query = db
+    .from("tasks")
+    .select("*, assignee:profiles(*), project:projects(id, name, client:clients(name))")
+    .order("due_date");
+
+  if (q)             query = query.ilike("title", `%${q}%`);
+  if (status && status !== "all") query = query.eq("status", status);
+  if (projectFilter) query = query.eq("project_id", projectFilter);
+
   const [{ data: tasks }, { data: projectsRaw }, { data: profiles }] = await Promise.all([
-    q
-      ? db.from("tasks").select("*, assignee:profiles(*), project:projects(name, client:clients(name))").ilike("title", `%${q}%`).order("due_date")
-      : db.from("tasks").select("*, assignee:profiles(*), project:projects(name, client:clients(name))").order("due_date"),
-    supabase
-      .from("projects")
-      .select("id, name, milestones(id, title)")
-      .order("created_at"),
+    query,
+    supabase.from("projects").select("id, name, milestones(id, title)").order("created_at"),
     supabase.from("profiles").select("id, full_name").eq("role", "team"),
   ]);
 
@@ -26,83 +40,167 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const projectsForModal = (projectsRaw ?? []).map((p: any) => ({
     id: p.id,
     name: p.name,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     milestones: (p.milestones ?? []).map((m: any) => ({ id: m.id, title: m.title })),
   }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
 
+  // Group tasks by project
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const grouped: Record<string, { project: any; tasks: any[] }> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const task of (tasks ?? []) as any[]) {
+    const pid = task.project?.id ?? "unassigned";
+    if (!grouped[pid]) grouped[pid] = { project: task.project, tasks: [] };
+    grouped[pid].tasks.push(task);
+  }
+  const groups = Object.values(grouped);
+
+  const activeStatus = status ?? "all";
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Topbar />
-      <div className="flex-1 overflow-y-auto p-6 [scrollbar-width:thin]">
-        <div className="flex items-end justify-between mb-5">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 [scrollbar-width:thin]">
+        {/* Header */}
+        <div className="flex items-start sm:items-end justify-between mb-4 gap-3">
           <div>
-            <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">
+            <h1 className="text-[20px] md:text-[22px] font-extrabold text-[#0f172a] tracking-tight">
               {q ? `Results for "${q}"` : "All Tasks"}
             </h1>
             <p className="text-[13px] text-[#475569] mt-0.5">
-              {q ? `${tasks?.length ?? 0} task${tasks?.length !== 1 ? "s" : ""} matching your search` : "Across all active projects and clients"}
+              {tasks?.length ?? 0} task{tasks?.length !== 1 ? "s" : ""} {q ? "matching your search" : "across all projects"}
             </p>
           </div>
-          <div className="flex gap-2">
-            <NewTaskButton projects={projectsForModal} profiles={profilesForModal} />
-          </div>
+          <NewTaskButton projects={projectsForModal} profiles={profilesForModal} />
         </div>
 
-        <div className="glass rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2.5 px-[18px] py-[15px] border-b border-white/50">
-            <span className="text-[14.5px] font-bold text-[#0f172a]">Active Tasks</span>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100/90 text-[#475569] border border-slate-200/60">
-              {tasks?.length ?? 0} tasks
-            </span>
-          </div>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(tasks ?? []).map((task: any) => (
-            <div
-              key={task.id}
-              className="flex items-center gap-3 px-[18px] py-3 border-b border-white/50 last:border-0 hover:bg-white/40 cursor-pointer transition-colors"
+        {/* Status filter tabs */}
+        <div className="flex items-center gap-1 mb-5 overflow-x-auto pb-1 [scrollbar-width:none] flex-shrink-0">
+          {STATUS_TABS.map(({ value, label, color }) => {
+            const isActive = activeStatus === value;
+            return (
+              <Link
+                key={value}
+                href={`/tasks?${new URLSearchParams({ ...(q ? { q } : {}), ...(value !== "all" ? { status: value } : {}), ...(projectFilter ? { project: projectFilter } : {}) }).toString()}`}
+                className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold transition-all flex-shrink-0 ${
+                  isActive
+                    ? "bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)]"
+                    : "bg-white/60 border border-white/60 text-[#475569] hover:bg-white/85"
+                }`}
+                style={isActive && color ? { background: color, boxShadow: `0 2px 8px ${color}44` } : undefined}
+              >
+                {label}
+              </Link>
+            );
+          })}
+
+          {projectFilter && (
+            <Link
+              href={`/tasks?${new URLSearchParams({ ...(q ? { q } : {}), ...(status && status !== "all" ? { status } : {}) }).toString()}`}
+              className="whitespace-nowrap ml-2 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[rgba(239,68,68,0.08)] text-[#ef4444] border border-[rgba(239,68,68,0.2)] hover:bg-[rgba(239,68,68,0.12)] flex-shrink-0"
             >
-              <div className="min-w-[88px]">
-                <div className="text-[12px] font-semibold text-[#0f172a]">
-                  {formatDate(task.due_date, { month: "short", day: "numeric" })}
-                </div>
-                <div className="text-[11px] text-[#94a3b8]">
-                  {task.due_date
-                    ? new Date(task.due_date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-                    : "—"}
-                </div>
-              </div>
-              <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{
-                  background:
-                    task.status === "in_progress" ? "#1B3FEE"
-                    : task.status === "done" ? "#10b981"
-                    : task.status === "late" ? "#f59f00"
-                    : "#94a3b8",
-                }}
-              />
-              <Avatar
-                name={task.assignee?.full_name ?? "?"}
-                color={getAvatarColor(task.assignee?.full_name ?? "A")}
-                size="xs"
-              />
-              <div className="flex-1">
-                <div className="text-[13px] font-medium text-[#0f172a]">{task.title}</div>
-                <div className="text-[11px] text-[#94a3b8] mt-0.5">
-                  {task.assignee?.full_name ?? "Unassigned"} · {task.project?.name ?? ""}
-                  {task.project?.client ? ` · ${(task.project.client as { name: string }).name}` : ""}
-                </div>
-              </div>
-              <TaskStatusBadge status={task.status} />
-            </div>
-          ))}
-          {(!tasks || tasks.length === 0) && (
-            <div className="px-[18px] py-8 text-center text-[13px] text-[#94a3b8]">
-              No tasks yet. Create a task to get started.
-            </div>
+              Clear project filter ×
+            </Link>
           )}
         </div>
+
+        {/* Task groups */}
+        {groups.length === 0 ? (
+          <div className="glass rounded-2xl p-12 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[rgba(27,63,238,0.06)] flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-[#94a3b8]" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <p className="text-[14px] font-semibold text-[#0f172a] mb-1">
+              {q ? `No tasks matching "${q}"` : activeStatus !== "all" ? `No ${STATUS_TABS.find(t => t.value === activeStatus)?.label} tasks` : "No tasks yet"}
+            </p>
+            <p className="text-[13px] text-[#94a3b8]">
+              {!q && activeStatus === "all" ? "Create your first task to get started." : "Try a different filter."}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {groups.map(({ project, tasks: groupTasks }: { project: any; tasks: any[] }) => {
+              const doneCount = groupTasks.filter(t => t.status === "done").length;
+              return (
+                <div key={project?.id ?? "unassigned"} className="glass rounded-2xl overflow-hidden">
+                  {/* Group header */}
+                  <div className="flex items-center justify-between px-4 md:px-[18px] py-3.5 border-b border-white/50 bg-[rgba(241,245,249,0.5)]">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {project ? (
+                        <>
+                          <div className="text-[13.5px] font-bold text-[#0f172a] truncate">
+                            {project.client?.name && <span className="text-[#94a3b8] font-medium">{project.client.name} / </span>}
+                            {project.name}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-[13.5px] font-bold text-[#0f172a]">Unassigned</div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[11px] font-semibold text-[#475569]">
+                        {doneCount}/{groupTasks.length} done
+                      </span>
+                      {project && (
+                        <Link
+                          href={`/tasks?${new URLSearchParams({ ...(status && status !== "all" ? { status } : {}), project: project.id }).toString()}`}
+                          className="text-[11px] font-semibold text-[#1B3FEE] bg-[rgba(27,63,238,0.08)] px-2 py-0.5 rounded-full hover:bg-[rgba(27,63,238,0.14)] transition-colors hidden sm:inline"
+                        >
+                          Filter
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Tasks */}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {groupTasks.map((task: any) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 px-4 md:px-[18px] py-3 border-b border-white/40 last:border-0 hover:bg-white/40 transition-colors"
+                    >
+                      {/* Date — hidden on xs */}
+                      <div className="hidden sm:block min-w-[80px]">
+                        <div className="text-[12px] font-semibold text-[#0f172a]">
+                          {formatDate(task.due_date, { month: "short", day: "numeric" })}
+                        </div>
+                        <div className="text-[11px] text-[#94a3b8]">
+                          {task.due_date
+                            ? new Date(task.due_date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+                            : "—"}
+                        </div>
+                      </div>
+
+                      <Avatar
+                        name={task.assignee?.full_name ?? "?"}
+                        color={getAvatarColor(task.assignee?.full_name ?? "A")}
+                        size="xs"
+                      />
+
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-[#0f172a] truncate">{task.title}</div>
+                        <div className="text-[11px] text-[#94a3b8] mt-0.5 truncate">
+                          {task.assignee?.full_name ?? "Unassigned"}
+                          {/* Due date shown on mobile */}
+                          <span className="sm:hidden">
+                            {task.due_date ? ` · ${formatDate(task.due_date, { month: "short", day: "numeric" })}` : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      <TaskStatusSelect taskId={task.id} status={task.status as TaskStatus} />
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

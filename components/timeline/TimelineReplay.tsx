@@ -36,6 +36,7 @@ interface Task {
   assignee: string;
   start: number;
   end: number;
+  status: string;
 }
 
 interface Activity {
@@ -60,6 +61,9 @@ const PHASE_COLORS = ["#1B3FEE", "#8b5cf6", "#f59f00", "#10b981", "#ef4444", "#0
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function taskState(task: Task, pct: number) {
+  // Respect actual DB status for done/in_progress tasks once they're "visible" in the timeline
+  if (task.status === "done" && pct >= task.start) return "done";
+  if (task.status === "in_progress" && pct >= task.start) return "active";
   return pct >= task.end ? "done" : pct >= task.start ? "active" : "pending";
 }
 
@@ -68,10 +72,12 @@ function rpDate(pct: number, startDate: Date, totalDays: number) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+const UNASSIGNED_PHASE_ID = "__unassigned__";
+
 // ── Build timeline from real project data ──────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTimelineData(project: any, clientName: string): TimelineData {
+function buildTimelineData(project: any, allProjectTasks: any[], clientName: string): TimelineData {
   const startDate = new Date(project.created_at);
   const endDate = project.target_date
     ? new Date(project.target_date)
@@ -95,6 +101,9 @@ function buildTimelineData(project: any, clientName: string): TimelineData {
     color: (m.color as string) ?? PHASE_COLORS[i % PHASE_COLORS.length],
   }));
 
+  // Set of task IDs already assigned to a milestone
+  const milestonedTaskIds = new Set<string>();
+
   const tasks: Task[] = milestones.flatMap((m: any, mi: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     const slotStart = (mi / msCount) * 100;
     const slotEnd = ((mi + 1) / msCount) * 100;
@@ -102,6 +111,7 @@ function buildTimelineData(project: any, clientName: string): TimelineData {
     const msEndPct = msDeadlinePct ?? slotEnd;
 
     return ((m.tasks ?? []) as any[]).map((t: any, ti: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      milestonedTaskIds.add(t.id as string);
       const taskCount = (m.tasks ?? []).length || 1;
       const defaultStart = slotStart + (ti / taskCount) * (msEndPct - slotStart);
       const defaultEnd = slotStart + ((ti + 1) / taskCount) * (msEndPct - slotStart);
@@ -118,9 +128,34 @@ function buildTimelineData(project: any, clientName: string): TimelineData {
         assignee: (t.assignee?.full_name as string) ?? "Unassigned",
         start,
         end,
+        status: (t.status as string) ?? "todo",
       };
     });
   });
+
+  // Add tasks that aren't linked to any milestone into an "Unassigned" phase
+  const unassignedTasks = allProjectTasks.filter((t: any) => !milestonedTaskIds.has(t.id as string)); // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (unassignedTasks.length > 0) {
+    unassignedTasks.forEach((t: any, ti: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const taskCount = unassignedTasks.length || 1;
+      const defaultStart = (ti / taskCount) * 100;
+      const defaultEnd = ((ti + 1) / taskCount) * 100;
+      const rawStart = toPercent(t.created_at) ?? defaultStart;
+      const rawEnd = toPercent(t.due_date) ?? defaultEnd;
+      const start = Math.max(0, Math.min(95, rawStart));
+      const end = Math.max(start + 5, Math.min(100, rawEnd));
+      tasks.push({
+        id: t.id as string,
+        phase: UNASSIGNED_PHASE_ID,
+        label: t.title as string,
+        assignee: (t.assignee?.full_name as string) ?? "Unassigned",
+        start,
+        end,
+        status: (t.status as string) ?? "todo",
+      });
+    });
+    phases.push({ id: UNASSIGNED_PHASE_ID, title: "General Tasks", color: "#94a3b8" });
+  }
 
   const activities: Activity[] = [];
   milestones.forEach((m: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -226,14 +261,21 @@ export function TimelineReplay({ clients }: { clients: ClientOption[] }) {
       setLoading(true);
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data } = await (supabase as any)
-          .from("projects")
-          .select("*, milestones(*, tasks(*, assignee:profiles(*)))")
-          .eq("id", selectedProjectId)
-          .single();
+        const db = supabase as any;
+        const [{ data: projectData }, { data: allTasksData }] = await Promise.all([
+          db
+            .from("projects")
+            .select("*, milestones(*, tasks(*, assignee:profiles(*)))")
+            .eq("id", selectedProjectId)
+            .single(),
+          db
+            .from("tasks")
+            .select("*, assignee:profiles(*)")
+            .eq("project_id", selectedProjectId),
+        ]);
 
-        if (data) {
-          const td = buildTimelineData(data, selectedClient?.name ?? "");
+        if (projectData) {
+          const td = buildTimelineData(projectData, allTasksData ?? [], selectedClient?.name ?? "");
           setTimelineData(td);
           setTasks(td.tasks);
         }
@@ -377,7 +419,7 @@ export function TimelineReplay({ clients }: { clients: ClientOption[] }) {
       {timelineData && !loading && (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-3 mb-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <StatCard icon={CheckSquare} iconColor="green" value={done} label="Tasks completed" tag={`${done} done`} tagVariant="up" />
             <StatCard icon={Clock} iconColor="gold" value={active} label="In progress" tag={`${active} active`} tagVariant="gold" />
             <StatCard icon={BarChart2} iconColor="blue" value={`${overallPct}%`} label="Overall progress" tag={`${overallPct}%`} tagVariant="info" />
@@ -400,7 +442,8 @@ export function TimelineReplay({ clients }: { clients: ClientOption[] }) {
               This project has no milestones yet. Add milestones from the project detail page.
             </div>
           ) : (
-            <div className="grid gap-2.5 mb-5" style={{ gridTemplateColumns: `repeat(${Math.min(phases.length, 4)}, 1fr)` }}>
+            <div className="overflow-x-auto mb-5 [scrollbar-width:thin]">
+            <div className="grid gap-2.5 min-w-[640px]" style={{ gridTemplateColumns: `repeat(${Math.min(phases.length, 4)}, 1fr)` }}>
               {phases.map((phase) => {
                 const phaseTasks = tasks.filter((t) => t.phase === phase.id);
                 return (
@@ -451,6 +494,7 @@ export function TimelineReplay({ clients }: { clients: ClientOption[] }) {
                   </div>
                 );
               })}
+            </div>
             </div>
           )}
 

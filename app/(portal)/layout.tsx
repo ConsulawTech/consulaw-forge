@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { PortalSidebar } from "@/components/layout/PortalSidebar";
+import { PortalSidebar, PortalBottomNav } from "@/components/layout/PortalSidebar";
 import type { Profile } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +30,8 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <div className="flex h-screen overflow-hidden relative z-10">
       <PortalSidebar profile={profile} clientName={client?.name ?? "Client"} />
-      <div className="flex-1 overflow-hidden">{children}</div>
+      <div className="flex-1 overflow-hidden pb-[60px] md:pb-0">{children}</div>
+      <PortalBottomNav />
     </div>
   );
 }

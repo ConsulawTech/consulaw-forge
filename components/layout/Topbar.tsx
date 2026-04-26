@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Settings, Plus, Search, LogOut, X, CheckSquare, Users } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Bell, Settings, Plus, Search, LogOut, X, CheckSquare, Users, Menu, LayoutDashboard, FolderKanban, Play, FileText, MessageSquare } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { NewTaskModal } from "@/components/tasks/NewTaskModal";
@@ -22,8 +22,18 @@ interface TopbarProps {
   onTabChange?: (tab: string) => void;
 }
 
+const MOBILE_NAV = [
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/projects",  icon: FolderKanban,    label: "Projects" },
+  { href: "/tasks",     icon: CheckSquare,     label: "Tasks" },
+  { href: "/messages",  icon: MessageSquare,   label: "Messages" },
+  { href: "/clients",   icon: Users,           label: "Clients" },
+  { href: "/timeline",  icon: Play,            label: "Timeline Replay" },
+];
+
 export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,6 +48,7 @@ export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
   const [hasUnread, setHasUnread] = useState(true);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const [taskOpen, setTaskOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -156,7 +167,15 @@ export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
   }
 
   return (
-    <header className="h-[58px] flex-shrink-0 glass border-b border-white/50 flex items-center px-6 gap-3 shadow-[0_1px_0_rgba(255,255,255,0.8)] relative z-40">
+    <header className="h-[58px] flex-shrink-0 glass border-b border-white/50 flex items-center px-4 md:px-6 gap-2 md:gap-3 shadow-[0_1px_0_rgba(255,255,255,0.8)] relative z-40">
+      {/* Mobile hamburger */}
+      <button
+        onClick={() => setNavOpen(true)}
+        className="lg:hidden w-[34px] h-[34px] rounded-[10px] flex items-center justify-center bg-white/60 border border-white/60 hover:bg-white/85 transition-colors cursor-pointer flex-shrink-0"
+      >
+        <Menu className="w-4 h-4 text-[#475569]" />
+      </button>
+
       {/* Tabs */}
       {tabs && tabs.length > 0 && (
         <>
@@ -180,7 +199,7 @@ export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
       )}
 
       {/* Search */}
-      <div ref={searchRef} className="relative">
+      <div ref={searchRef} className="relative hidden md:block">
         <div className="flex items-center gap-2 bg-white/60 border border-white/60 rounded-[10px] px-3 py-[7px] w-[220px] backdrop-blur-sm focus-within:border-[#1B3FEE]/30 transition-colors">
           <Search className="w-3.5 h-3.5 text-[#94a3b8] flex-shrink-0" />
           <input
@@ -370,6 +389,58 @@ export function Topbar({ tabs, activeTab, onTabChange }: TopbarProps) {
           profiles={modalProfiles}
           onClose={() => setTaskOpen(false)}
         />
+      )}
+
+      {/* Mobile Nav Drawer */}
+      {navOpen && (
+        <div className="fixed inset-0 z-[200] lg:hidden">
+          <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={() => setNavOpen(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-[264px] glass border-r border-white/50 flex flex-col shadow-[4px_0_32px_rgba(0,0,0,0.12)]">
+            <div className="px-4 py-4 border-b border-white/40 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-[34px] h-[34px] bg-[#1B3FEE] rounded-[9px] flex items-center justify-center shadow-[0_4px_12px_rgba(27,63,238,0.3)]">
+                  <FileText className="w-4 h-4 text-white" strokeWidth={2.2} />
+                </div>
+                <div>
+                  <div className="text-[14px] font-bold text-[#0f172a]">Forge</div>
+                  <div className="text-[10px] text-[#94a3b8]">consulawtech.com</div>
+                </div>
+              </div>
+              <button onClick={() => setNavOpen(false)} className="w-8 h-8 rounded-[8px] flex items-center justify-center hover:bg-white/60 cursor-pointer transition-colors">
+                <X className="w-4 h-4 text-[#475569]" />
+              </button>
+            </div>
+            <nav className="flex-1 px-3 py-4 overflow-y-auto">
+              <p className="text-[10px] font-bold tracking-[0.1em] uppercase text-[#94a3b8] px-2 mb-2">Workspace</p>
+              {MOBILE_NAV.map(({ href, icon: Icon, label }) => {
+                const active = pathname === href || pathname.startsWith(href + "/");
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setNavOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] font-medium mb-0.5 transition-all",
+                      active ? "bg-[rgba(27,63,238,0.08)] text-[#1B3FEE] font-semibold" : "text-[#475569] hover:bg-white/60"
+                    )}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={1.8} />
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="px-3 py-4 border-t border-white/40 flex-shrink-0">
+              <button
+                onClick={signOut}
+                className="flex items-center gap-2.5 px-3 py-2.5 w-full rounded-[10px] text-[13px] font-medium text-[#ef4444] hover:bg-[rgba(239,68,68,0.06)] transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
+            </div>
+          </aside>
+        </div>
       )}
     </header>
   );
