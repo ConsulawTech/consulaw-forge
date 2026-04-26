@@ -33,7 +33,7 @@ export default async function TimelinePage() {
         <div className="mb-5">
           <h1 className="text-[22px] font-extrabold text-[#0f172a] tracking-tight">Timeline Replay</h1>
           <p className="text-[13px] text-[#475569] mt-0.5">
-            Select a client and project to visualize its milestone timeline, then drag tasks and play the animation
+            Select a client and project to visualize its task timeline, then drag checkpoints and play the animation
           </p>
         </div>
         <TimelineReplay clients={clients} />

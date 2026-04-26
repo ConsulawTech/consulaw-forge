@@ -30,11 +30,23 @@ export default async function MessagesPage() {
         .limit(50)
     : { data: [] };
 
+  const { data: teamProfilesRaw } = await supabase
+    .from("profiles")
+    .select("id, full_name, job_title")
+    .eq("role", "team");
+
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("id, full_name")
     .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
     .single();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const teamMembers = ((teamProfilesRaw ?? []) as any[]).map((p: any) => ({
+    id: p.id as string,
+    full_name: p.full_name as string,
+    job_title: (p.job_title as string | null) ?? null,
+  }));
 
   if (projects.length === 0) {
     return (
@@ -56,10 +68,13 @@ export default async function MessagesPage() {
       <div className="flex-1 overflow-hidden">
         <InternalMessages
           projects={projects}
+          teamMembers={teamMembers}
           initialProjectId={firstProjectId}
           initialMessages={initialMessages ?? []}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           senderName={(profile as any)?.full_name ?? "Team"}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          senderId={(profile as any)?.id ?? ""}
         />
       </div>
     </div>

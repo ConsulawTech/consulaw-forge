@@ -43,7 +43,7 @@ export default async function ProjectsPage() {
       .from("projects")
       .select("*, client:clients(*), milestones(*, tasks(*))")
       .order("created_at"),
-    supabase.from("profiles").select("id, full_name").eq("role", "team"),
+    supabase.from("profiles").select("id, full_name, job_title").eq("role", "team"),
     supabase.from("clients").select("id, name").order("created_at"),
   ]);
 
@@ -63,15 +63,18 @@ export default async function ProjectsPage() {
       <div className="flex-1 overflow-y-auto p-4 md:p-6 [scrollbar-width:thin]">
         <div className="flex items-start sm:items-end justify-between mb-5 gap-3">
           <div>
-            <h1 className="text-[20px] md:text-[22px] font-extrabold text-[#0f172a] tracking-tight">Projects</h1>
-            <p className="text-[13px] text-[#475569] mt-0.5">All milestones across active projects</p>
+            <h1 className="text-[20px] md:text-[22px] font-extrabold text-[#0f172a] tracking-tight">Tasks</h1>
+            <p className="text-[13px] text-[#475569] mt-0.5">All project tasks across active projects</p>
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
-            <NewTaskButton projects={projectsForModal} profiles={profilesForModal} label="Schedule Task" variant="secondary" />
+            <NewTaskButton projects={projectsForModal} profiles={profilesForModal} label="Add Checkpoint" variant="secondary" />
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            <AddMilestoneButton projects={(projects ?? []).map((p: any) => ({ id: p.id, name: p.name }))} />
+            <AddMilestoneButton projects={(projects ?? []).map((p: any) => ({ id: p.id, name: p.name }))} label="Add Task" />
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            <AddProjectButton clients={(clients ?? []).map((c: any) => ({ id: c.id, name: c.name }))} />
+            <AddProjectButton
+              clients={(clients ?? []).map((c: any) => ({ id: c.id, name: c.name }))}
+              teamProfiles={(profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }))}
+            />
           </div>
         </div>
 
@@ -159,7 +162,7 @@ export default async function ProjectsPage() {
               <div className="glass rounded-2xl overflow-hidden">
                 {/* Desktop table header */}
                 <div className="hidden md:grid grid-cols-[minmax(160px,1.5fr)_minmax(180px,2fr)_120px_72px_90px] bg-[rgba(241,245,249,0.8)] border-b border-white/50">
-                  {["Milestone", "Tasks", "Deadline", "Progress", "Actions"].map((h) => (
+                  {["Task", "Checkpoints", "Deadline", "Progress", "Actions"].map((h) => (
                     <div key={h} className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.07em] text-[#94a3b8]">{h}</div>
                   ))}
                 </div>
@@ -273,7 +276,7 @@ export default async function ProjectsPage() {
 
                 {(project.milestones ?? []).length === 0 && (
                   <div className="px-4 py-8 text-center text-[13px] text-[#94a3b8]">
-                    No milestones yet.{" "}
+                    No tasks yet.{" "}
                     <Link href={`/projects/${project.id}`} className="text-[#1B3FEE] font-semibold hover:underline">Open project →</Link>
                   </div>
                 )}

@@ -85,6 +85,24 @@ export interface ProjectMember {
   profile?: Profile;
 }
 
+export interface InternalMessage {
+  id: string;
+  project_id: string | null;
+  sender_id: string | null;
+  sender_name: string;
+  recipient_id: string | null;
+  content: string;
+  created_at: string;
+}
+
+export interface AiGeneratedTask {
+  title: string;
+  checkpoints: {
+    title: string;
+    assigneeId: string | null;
+  }[];
+}
+
 export type Database = {
   public: {
     Tables: {

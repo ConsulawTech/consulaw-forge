@@ -9,8 +9,15 @@ interface Client {
   name: string;
 }
 
+interface TeamProfile {
+  id: string;
+  full_name: string;
+  job_title: string | null;
+}
+
 interface AddProjectButtonProps {
   clients: Client[];
+  teamProfiles: TeamProfile[];
   preselectedClientId?: string;
   label?: string;
   variant?: "primary" | "secondary" | "ghost";
@@ -18,6 +25,7 @@ interface AddProjectButtonProps {
 
 export function AddProjectButton({
   clients,
+  teamProfiles,
   preselectedClientId,
   label = "New Project",
   variant = "primary",
@@ -41,8 +49,10 @@ export function AddProjectButton({
       {open && (
         <AddProjectModal
           clients={clients}
+          teamProfiles={teamProfiles}
           preselectedClientId={preselectedClientId}
           onClose={() => setOpen(false)}
+          onDone={() => setOpen(false)}
         />
       )}
     </>

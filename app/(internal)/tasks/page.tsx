@@ -1,109 +1,80 @@
 import { createClient } from "@/lib/supabase/server";
 import { Topbar } from "@/components/layout/Topbar";
-import { formatDate, getAvatarColor } from "@/lib/utils";
-import { Avatar } from "@/components/ui/Avatar";
-import { NewTaskButton } from "@/components/tasks/NewTaskButton";
-import { TaskStatusSelect } from "@/components/tasks/TaskStatusSelect";
+import { formatDate, deadlineStatus } from "@/lib/utils";
 import Link from "next/link";
-import type { TaskStatus } from "@/lib/types";
+import { AddMilestoneButton } from "@/components/projects/AddMilestoneButton";
+import { CheckCircle2, Circle, AlertCircle, Clock } from "lucide-react";
 
-const STATUS_TABS: { value: string; label: string; color?: string }[] = [
-  { value: "all",         label: "All" },
-  { value: "todo",        label: "To Do" },
-  { value: "in_progress", label: "In Progress", color: "#1B3FEE" },
-  { value: "done",        label: "Done",        color: "#10b981" },
-  { value: "late",        label: "Late",        color: "#f59f00" },
-];
+function ProgressRing({ pct, color, size = 44 }: { pct: number; color: string; size?: number }) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(241,245,249,0.95)" strokeWidth="4" />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke={color} strokeWidth="4" strokeLinecap="round"
+          strokeDasharray={circ} strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 0.6s" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-[#0f172a]">
+        {pct}%
+      </div>
+    </div>
+  );
+}
 
-export default async function TasksPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; project?: string }> }) {
-  const { q, status, project: projectFilter } = await searchParams;
+export default async function TasksPage({ searchParams }: { searchParams: Promise<{ q?: string; project?: string }> }) {
+  const { q, project: projectFilter } = await searchParams;
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
 
   let query = db
-    .from("tasks")
-    .select("*, assignee:profiles(*), project:projects(id, name, client:clients(name))")
-    .order("due_date");
+    .from("milestones")
+    .select("*, project:projects(id, name, client:clients(name)), tasks(id, status)")
+    .order("order_index");
 
-  if (q)             query = query.ilike("title", `%${q}%`);
-  if (status && status !== "all") query = query.eq("status", status);
+  if (q) query = query.ilike("title", `%${q}%`);
   if (projectFilter) query = query.eq("project_id", projectFilter);
 
-  const [{ data: tasks }, { data: projectsRaw }, { data: profiles }] = await Promise.all([
+  const [{ data: milestones }, { data: projectsRaw }] = await Promise.all([
     query,
-    supabase.from("projects").select("id, name, milestones(id, title)").order("created_at"),
-    supabase.from("profiles").select("id, full_name").eq("role", "team"),
+    supabase.from("projects").select("id, name").order("created_at"),
   ]);
 
+  // Group by project
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const projectsForModal = (projectsRaw ?? []).map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    milestones: (p.milestones ?? []).map((m: any) => ({ id: m.id, title: m.title })),
-  }));
+  const grouped: Record<string, { project: any; milestones: any[] }> = {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
-
-  // Group tasks by project
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const grouped: Record<string, { project: any; tasks: any[] }> = {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const task of (tasks ?? []) as any[]) {
-    const pid = task.project?.id ?? "unassigned";
-    if (!grouped[pid]) grouped[pid] = { project: task.project, tasks: [] };
-    grouped[pid].tasks.push(task);
+  for (const ms of (milestones ?? []) as any[]) {
+    const pid = ms.project?.id ?? "unassigned";
+    if (!grouped[pid]) grouped[pid] = { project: ms.project, milestones: [] };
+    grouped[pid].milestones.push(ms);
   }
   const groups = Object.values(grouped);
-
-  const activeStatus = status ?? "all";
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <Topbar />
       <div className="flex-1 overflow-y-auto p-4 md:p-6 [scrollbar-width:thin]">
         {/* Header */}
-        <div className="flex items-start sm:items-end justify-between mb-4 gap-3">
+        <div className="flex items-start sm:items-end justify-between mb-5 gap-3">
           <div>
             <h1 className="text-[20px] md:text-[22px] font-extrabold text-[#0f172a] tracking-tight">
               {q ? `Results for "${q}"` : "All Tasks"}
             </h1>
             <p className="text-[13px] text-[#475569] mt-0.5">
-              {tasks?.length ?? 0} task{tasks?.length !== 1 ? "s" : ""} {q ? "matching your search" : "across all projects"}
+              {milestones?.length ?? 0} task{milestones?.length !== 1 ? "s" : ""} {q ? "matching your search" : "across all projects"}
             </p>
           </div>
-          <NewTaskButton projects={projectsForModal} profiles={profilesForModal} />
-        </div>
-
-        {/* Status filter tabs */}
-        <div className="flex items-center gap-1 mb-5 overflow-x-auto pb-1 [scrollbar-width:none] flex-shrink-0">
-          {STATUS_TABS.map(({ value, label, color }) => {
-            const isActive = activeStatus === value;
-            return (
-              <Link
-                key={value}
-                href={`/tasks?${new URLSearchParams({ ...(q ? { q } : {}), ...(value !== "all" ? { status: value } : {}), ...(projectFilter ? { project: projectFilter } : {}) }).toString()}`}
-                className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold transition-all flex-shrink-0 ${
-                  isActive
-                    ? "bg-[#1B3FEE] text-white shadow-[0_2px_8px_rgba(27,63,238,0.25)]"
-                    : "bg-white/60 border border-white/60 text-[#475569] hover:bg-white/85"
-                }`}
-                style={isActive && color ? { background: color, boxShadow: `0 2px 8px ${color}44` } : undefined}
-              >
-                {label}
-              </Link>
-            );
-          })}
-
-          {projectFilter && (
-            <Link
-              href={`/tasks?${new URLSearchParams({ ...(q ? { q } : {}), ...(status && status !== "all" ? { status } : {}) }).toString()}`}
-              className="whitespace-nowrap ml-2 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-[rgba(239,68,68,0.08)] text-[#ef4444] border border-[rgba(239,68,68,0.2)] hover:bg-[rgba(239,68,68,0.12)] flex-shrink-0"
-            >
-              Clear project filter ×
-            </Link>
-          )}
+          <div className="flex flex-wrap gap-2 justify-end">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <AddMilestoneButton projects={(projectsRaw ?? []).map((p: any) => ({ id: p.id, name: p.name }))} label="Add Task" />
+          </div>
         </div>
 
         {/* Task groups */}
@@ -115,90 +86,87 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
               </svg>
             </div>
             <p className="text-[14px] font-semibold text-[#0f172a] mb-1">
-              {q ? `No tasks matching "${q}"` : activeStatus !== "all" ? `No ${STATUS_TABS.find(t => t.value === activeStatus)?.label} tasks` : "No tasks yet"}
+              {q ? `No tasks matching "${q}"` : "No tasks yet"}
             </p>
             <p className="text-[13px] text-[#94a3b8]">
-              {!q && activeStatus === "all" ? "Create your first task to get started." : "Try a different filter."}
+              {!q ? "Create your first task to get started." : "Try a different search."}
             </p>
           </div>
         ) : (
           <div className="flex flex-col gap-5">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {groups.map(({ project, tasks: groupTasks }: { project: any; tasks: any[] }) => {
-              const doneCount = groupTasks.filter(t => t.status === "done").length;
-              return (
-                <div key={project?.id ?? "unassigned"} className="glass rounded-2xl overflow-hidden">
-                  {/* Group header */}
-                  <div className="flex items-center justify-between px-4 md:px-[18px] py-3.5 border-b border-white/50 bg-[rgba(241,245,249,0.5)]">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {project ? (
-                        <>
-                          <div className="text-[13.5px] font-bold text-[#0f172a] truncate">
-                            {project.client?.name && <span className="text-[#94a3b8] font-medium">{project.client.name} / </span>}
-                            {project.name}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-[13.5px] font-bold text-[#0f172a]">Unassigned</div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[11px] font-semibold text-[#475569]">
-                        {doneCount}/{groupTasks.length} done
-                      </span>
-                      {project && (
-                        <Link
-                          href={`/tasks?${new URLSearchParams({ ...(status && status !== "all" ? { status } : {}), project: project.id }).toString()}`}
-                          className="text-[11px] font-semibold text-[#1B3FEE] bg-[rgba(27,63,238,0.08)] px-2 py-0.5 rounded-full hover:bg-[rgba(27,63,238,0.14)] transition-colors hidden sm:inline"
-                        >
-                          Filter
-                        </Link>
-                      )}
-                    </div>
+            {groups.map(({ project, milestones: groupMilestones }: { project: any; milestones: any[] }) => (
+              <div key={project?.id ?? "unassigned"} className="glass rounded-2xl overflow-hidden">
+                {/* Group header */}
+                <div className="flex items-center justify-between px-4 md:px-[18px] py-3.5 border-b border-white/50 bg-[rgba(241,245,249,0.5)]">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {project ? (
+                      <div className="text-[13.5px] font-bold text-[#0f172a] truncate">
+                        {project.client?.name && <span className="text-[#94a3b8] font-medium">{project.client.name} / </span>}
+                        {project.name}
+                      </div>
+                    ) : (
+                      <div className="text-[13.5px] font-bold text-[#0f172a]">Unassigned</div>
+                    )}
                   </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-[11px] font-semibold text-[#475569]">
+                      {groupMilestones.length} task{groupMilestones.length !== 1 ? "s" : ""}
+                    </span>
+                    {project && (
+                      <Link
+                        href={`/tasks?${new URLSearchParams({ ...(q ? { q } : {}), project: project.id }).toString()}`}
+                        className="text-[11px] font-semibold text-[#1B3FEE] bg-[rgba(27,63,238,0.08)] px-2 py-0.5 rounded-full hover:bg-[rgba(27,63,238,0.14)] transition-colors hidden sm:inline"
+                      >
+                        Filter
+                      </Link>
+                    )}
+                  </div>
+                </div>
 
-                  {/* Tasks */}
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {groupTasks.map((task: any) => (
+                {/* Milestones (Tasks) */}
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {groupMilestones.map((ms: any) => {
+                  const dlMs = deadlineStatus(ms.deadline);
+                  const doneCount = (ms.tasks ?? []).filter((t: { status: string }) => t.status === "done").length;
+                  const totalCount = (ms.tasks ?? []).length;
+                  return (
                     <div
-                      key={task.id}
+                      key={ms.id}
                       className="flex items-center gap-3 px-4 md:px-[18px] py-3 border-b border-white/40 last:border-0 hover:bg-white/40 transition-colors"
                     >
-                      {/* Date — hidden on xs */}
+                      <div
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ background: ms.color ?? "#1B3FEE" }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-[#0f172a] truncate">{ms.title}</div>
+                        <div className="text-[11px] text-[#94a3b8] mt-0.5 truncate">
+                          {doneCount}/{totalCount} checkpoints
+                        </div>
+                      </div>
                       <div className="hidden sm:block min-w-[80px]">
                         <div className="text-[12px] font-semibold text-[#0f172a]">
-                          {formatDate(task.due_date, { month: "short", day: "numeric" })}
-                        </div>
-                        <div className="text-[11px] text-[#94a3b8]">
-                          {task.due_date
-                            ? new Date(task.due_date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-                            : "—"}
+                          {formatDate(ms.deadline, { month: "short", day: "numeric" })}
                         </div>
                       </div>
-
-                      <Avatar
-                        name={task.assignee?.full_name ?? "?"}
-                        color={getAvatarColor(task.assignee?.full_name ?? "A")}
-                        size="xs"
-                      />
-
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-medium text-[#0f172a] truncate">{task.title}</div>
-                        <div className="text-[11px] text-[#94a3b8] mt-0.5 truncate">
-                          {task.assignee?.full_name ?? "Unassigned"}
-                          {/* Due date shown on mobile */}
-                          <span className="sm:hidden">
-                            {task.due_date ? ` · ${formatDate(task.due_date, { month: "short", day: "numeric" })}` : ""}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {ms.deadline && (
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                            dlMs === "ok" ? "bg-[rgba(16,185,129,0.1)] text-[#10b981]"
+                            : dlMs === "warn" ? "bg-[rgba(245,159,0,0.1)] text-[#f59f00]"
+                            : "bg-[rgba(239,68,68,0.1)] text-[#ef4444]"
+                          }`}>
+                            {dlMs === "late" ? "Overdue" : formatDate(ms.deadline, { month: "short", day: "numeric" })}
                           </span>
-                        </div>
+                        )}
+                        <ProgressRing pct={ms.progress ?? 0} color={ms.color ?? "#1B3FEE"} size={36} />
                       </div>
-
-                      <TaskStatusSelect taskId={task.id} status={task.status as TaskStatus} />
                     </div>
-                  ))}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ))}
           </div>
         )}
       </div>

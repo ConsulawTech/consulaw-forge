@@ -64,8 +64,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </p>
           </div>
           <div className="flex gap-2">
-            <AddMilestoneButton projects={[{ id: project.id, name: project.name }]} defaultProjectId={project.id} />
-            <NewTaskButton projects={projectForModal} profiles={profilesForModal} defaultProjectId={project.id} label="Schedule Task" variant="secondary" />
+            <AddMilestoneButton projects={[{ id: project.id, name: project.name }]} defaultProjectId={project.id} label="Add Task" />
+            <NewTaskButton projects={projectForModal} profiles={profilesForModal} defaultProjectId={project.id} label="Add Checkpoint" variant="secondary" />
           </div>
         </div>
 
@@ -80,10 +80,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
 
-        {/* Milestones */}
+        {/* Tasks */}
         {(project.milestones ?? []).length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center text-[#94a3b8] text-sm">
-            No milestones yet. Click &quot;Add Milestone&quot; to get started.
+            No tasks yet. Click &quot;Add Task&quot; to get started.
           </div>
         ) : (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,7 +91,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             const dlMs = deadlineStatus(ms.deadline);
             return (
               <div key={ms.id} className="glass rounded-2xl overflow-hidden mb-4">
-                {/* Milestone header */}
+                {/* Task header */}
                 <div className="flex items-center gap-4 px-5 py-4 border-b border-white/50">
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: ms.color ?? "#1B3FEE" }} />
                   <div className="flex-1">
@@ -113,15 +113,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                       projects={projectForModal}
                       profiles={profilesForModal}
                       defaultProjectId={project.id}
-                      label="+ Task"
+                      label="+ Checkpoint"
                       variant="inline"
                     />
                   </div>
                 </div>
 
-                {/* Tasks */}
+                {/* Checkpoints */}
                 {(ms.tasks ?? []).length === 0 ? (
-                  <div className="px-5 py-4 text-[12px] text-[#94a3b8]">No tasks yet for this milestone.</div>
+                  <div className="px-5 py-4 text-[12px] text-[#94a3b8]">No checkpoints yet for this task.</div>
                 ) : (
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   (ms.tasks ?? []).map((task: any) => (

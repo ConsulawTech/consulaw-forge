@@ -28,7 +28,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const projects: any[] = client.projects ?? [];
   const projectIds = projects.map((p: any) => p.id).filter(Boolean);
 
-  const [{ data: allTasks }, { data: messages }] = await Promise.all([
+  const [{ data: allTasks }, { data: messages }, { data: teamProfilesRaw }] = await Promise.all([
     projectIds.length > 0
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? (supabase as any)
@@ -45,6 +45,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           .order("created_at")
           .limit(30)
       : Promise.resolve({ data: [] }),
+    supabase.from("profiles").select("id, full_name, job_title").eq("role", "team"),
   ]);
 
   // Group tasks by project_id
@@ -82,6 +83,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <DeleteClientButton clientId={client.id} clientName={client.name} variant="button" />
             <AddProjectButton
               clients={[{ id: client.id, name: client.name }]}
+              teamProfiles={(teamProfilesRaw ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }))}
               preselectedClientId={client.id}
               label="Add Project"
             />

@@ -72,7 +72,7 @@ export default async function DashboardPage() {
                   {projects?.[0] ? "Active project" : "No active projects"}
                 </span>
                 <Link href="/projects" className="ml-auto text-[12px] font-semibold text-[#1B3FEE] flex items-center gap-1 hover:underline">
-                  View milestones →
+                  View tasks →
                 </Link>
               </div>
               {projects?.[0] ? (

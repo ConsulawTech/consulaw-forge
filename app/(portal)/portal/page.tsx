@@ -178,13 +178,13 @@ export default async function PortalPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3.5">
-              {/* Milestones */}
+              {/* Tasks */}
               <div className="glass rounded-2xl overflow-hidden">
                 <div className="flex items-center gap-2 px-[18px] py-3.5 border-b border-white/50">
                   <div className="w-7 h-7 rounded-[8px] bg-[rgba(27,63,238,0.1)] flex items-center justify-center">
                     <Activity className="w-3.5 h-3.5 text-[#1B3FEE]" />
                   </div>
-                  <span className="text-[13px] font-bold text-[#0f172a]">Milestones</span>
+                  <span className="text-[13px] font-bold text-[#0f172a]">Tasks</span>
                 </div>
                 <div className="p-[18px] flex flex-col gap-4">
                   {milestones.map((ms: any) => (

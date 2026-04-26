@@ -142,7 +142,7 @@ export function PortalMessages({ projects, initialProjectId, initialMessages, se
           return (
             <div key={msg.id} className={`flex flex-col max-w-[60%] ${isMe ? "self-end items-end" : "self-start items-start"}`}>
               {!isMe && (
-                <span className="text-[11px] text-[#94a3b8] font-medium mb-1 px-1">{msg.sender_name}</span>
+                <span className="text-[11px] text-[#94a3b8] font-medium mb-1 px-1">Consulaw Tech</span>
               )}
               <div
                 className="px-4 py-2.5 text-[13.5px] leading-[1.5] shadow-sm"
