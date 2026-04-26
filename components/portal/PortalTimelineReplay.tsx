@@ -14,7 +14,7 @@ interface ProjectOption {
 }
 
 interface Phase { id: string; title: string; color: string; }
-interface Task  { id: string; phase: string; label: string; assignee: string; start: number; end: number; }
+interface Task  { id: string; phase: string; label: string; assignee: string; start: number; end: number; status: string; }
 interface Activity { day: number; text: string; who: string; color: string; }
 interface TimelineData {
   phases: Phase[]; tasks: Task[]; activities: Activity[];
@@ -22,8 +22,11 @@ interface TimelineData {
 }
 
 const PHASE_COLORS = ["#1B3FEE", "#8b5cf6", "#f59f00", "#10b981", "#ef4444", "#0ea5e9"];
+const UNASSIGNED_PHASE_ID = "__unassigned__";
 
 function taskState(task: Task, pct: number) {
+  if (task.status === "done" && pct >= task.start) return "done";
+  if (task.status === "in_progress" && pct >= task.start) return "active";
   return pct >= task.end ? "done" : pct >= task.start ? "active" : "pending";
 }
 
@@ -33,7 +36,7 @@ function rpDate(pct: number, startDate: Date, totalDays: number) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTimelineData(project: any): TimelineData {
+function buildTimelineData(project: any, allProjectTasks: any[]): TimelineData {
   const startDate = new Date(project.created_at);
   const endDate   = project.target_date ? new Date(project.target_date) : new Date(startDate.getTime() + 90 * 86400000);
   const totalMs   = Math.max(1, endDate.getTime() - startDate.getTime());
@@ -54,6 +57,8 @@ function buildTimelineData(project: any): TimelineData {
     id: m.id, title: m.title, color: m.color ?? PHASE_COLORS[i % PHASE_COLORS.length],
   }));
 
+  const milestonedTaskIds = new Set<string>();
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tasks: Task[] = milestones.flatMap((m: any, mi: number) => {
     const slotStart    = (mi / msCount) * 100;
@@ -62,6 +67,7 @@ function buildTimelineData(project: any): TimelineData {
     const msEndPct     = msDeadlinePct ?? slotEnd;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return ((m.tasks ?? []) as any[]).map((t: any, ti: number) => {
+      milestonedTaskIds.add(t.id as string);
       const taskCount    = (m.tasks ?? []).length || 1;
       const defaultStart = slotStart + (ti / taskCount) * (msEndPct - slotStart);
       const defaultEnd   = slotStart + ((ti + 1) / taskCount) * (msEndPct - slotStart);
@@ -72,9 +78,33 @@ function buildTimelineData(project: any): TimelineData {
         assignee: t.assignee?.full_name ?? "Unassigned",
         start: Math.max(0, Math.min(95, rawStart)),
         end:   Math.max(rawStart + 5, Math.min(100, rawEnd)),
+        status: (t.status as string) ?? "todo",
       };
     });
   });
+
+  // Add tasks not linked to any milestone
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const unassigned = allProjectTasks.filter((t: any) => !milestonedTaskIds.has(t.id as string));
+  if (unassigned.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    unassigned.forEach((t: any, ti: number) => {
+      const taskCount    = unassigned.length || 1;
+      const defaultStart = (ti / taskCount) * 100;
+      const defaultEnd   = ((ti + 1) / taskCount) * 100;
+      const rawStart     = toPercent(t.created_at) ?? defaultStart;
+      const rawEnd       = toPercent(t.due_date) ?? defaultEnd;
+      const start        = Math.max(0, Math.min(95, rawStart));
+      tasks.push({
+        id: t.id, phase: UNASSIGNED_PHASE_ID, label: t.title,
+        assignee: t.assignee?.full_name ?? "Unassigned",
+        start,
+        end: Math.max(start + 5, Math.min(100, rawEnd)),
+        status: (t.status as string) ?? "todo",
+      });
+    });
+    phases.push({ id: UNASSIGNED_PHASE_ID, title: "General Tasks", color: "#94a3b8" });
+  }
 
   const activities: Activity[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -123,13 +153,18 @@ export function PortalTimelineReplay({ projects }: { projects: ProjectOption[] }
       setLoading(true);
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data } = await (supabase as any)
-          .from("projects")
-          .select("*, milestones(*, tasks(*, assignee:profiles(*)))")
-          .eq("id", selectedProjectId)
-          .single();
-        if (data) {
-          const td = buildTimelineData(data);
+        const db = supabase as any;
+        const [{ data: projectData }, { data: allTasksData }] = await Promise.all([
+          db.from("projects")
+            .select("*, milestones(*, tasks(*, assignee:profiles(*)))")
+            .eq("id", selectedProjectId)
+            .single(),
+          db.from("tasks")
+            .select("*, assignee:profiles(*)")
+            .eq("project_id", selectedProjectId),
+        ]);
+        if (projectData) {
+          const td = buildTimelineData(projectData, allTasksData ?? []);
           setTimelineData(td);
           setTasks(td.tasks);
         }
@@ -220,7 +255,7 @@ export function PortalTimelineReplay({ projects }: { projects: ProjectOption[] }
       {timelineData && !loading && (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-3 mb-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <StatCard icon={CheckSquare} iconColor="green"  value={done}        label="Tasks completed" tag={`${done} done`}      tagVariant="up"      />
             <StatCard icon={Clock}       iconColor="gold"   value={active}      label="In progress"     tag={`${active} active`}  tagVariant="gold"    />
             <StatCard icon={BarChart2}   iconColor="blue"   value={`${overallPct}%`} label="Overall progress" tag={`${overallPct}%`} tagVariant="info" />
@@ -237,10 +272,11 @@ export function PortalTimelineReplay({ projects }: { projects: ProjectOption[] }
           {/* Kanban */}
           {phases.length === 0 ? (
             <div className="glass rounded-2xl p-10 text-center text-[#94a3b8] text-[13px] mb-5">
-              No milestones set up yet.
+              No tasks set up yet. Your team will add tasks to your project soon.
             </div>
           ) : (
-            <div className="grid gap-2.5 mb-5" style={{ gridTemplateColumns: `repeat(${Math.min(phases.length, 3)}, 1fr)` }}>
+            <div className="overflow-x-auto mb-5 [scrollbar-width:thin]">
+            <div className="grid gap-2.5 min-w-[480px]" style={{ gridTemplateColumns: `repeat(${Math.min(phases.length, 3)}, 1fr)` }}>
               {phases.map((phase) => {
                 const phaseTasks = tasks.filter((t) => t.phase === phase.id);
                 return (
@@ -281,6 +317,7 @@ export function PortalTimelineReplay({ projects }: { projects: ProjectOption[] }
                   </div>
                 );
               })}
+            </div>
             </div>
           )}
 
