@@ -29,8 +29,14 @@ export default async function ClientsPage() {
         <div className="grid grid-cols-3 gap-4">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {(clients ?? []).map((client: any) => {
-            const project = client.projects?.[0];
-            const progress = project?.overall_progress ?? 0;
+            const projects: any[] = client.projects ?? [];
+            const progress = projects.length > 0
+              ? Math.round(projects.reduce((s: number, p: any) => s + (p.overall_progress ?? 0), 0) / projects.length)
+              : 0;
+            const nextDeadline = projects
+              .map((p: any) => p.target_date)
+              .filter(Boolean)
+              .sort()[0] ?? null;
             return (
               <div key={client.id} className="relative group">
                 <Link href={`/clients/${client.id}`}>
@@ -45,7 +51,9 @@ export default async function ClientsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="text-[15px] font-bold text-[#0f172a]">{client.name}</div>
                         <div className="text-[12px] text-[#1B3FEE] font-medium mt-0.5 truncate">
-                          {project?.name ?? "No active project"}
+                          {projects.length > 0
+                            ? `${projects.length} project${projects.length !== 1 ? "s" : ""}`
+                            : "No active projects"}
                         </div>
                         {client.email && (
                           <div className="text-[11px] text-[#94a3b8] truncate">{client.email}</div>
@@ -68,9 +76,9 @@ export default async function ClientsPage() {
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-[#94a3b8]">
-                      <span>{client.projects?.length ?? 0} project{client.projects?.length !== 1 ? "s" : ""}</span>
-                      {project?.target_date && (
-                        <span>Due {formatDate(project.target_date, { month: "short", year: "numeric" })}</span>
+                      <span>{projects.length} project{projects.length !== 1 ? "s" : ""}</span>
+                      {nextDeadline && (
+                        <span>Next due {formatDate(nextDeadline, { month: "short", year: "numeric" })}</span>
                       )}
                     </div>
                   </div>
