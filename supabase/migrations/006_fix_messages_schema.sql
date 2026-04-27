@@ -1,16 +1,14 @@
 -- Fix internal_messages schema and policies
 
--- Drop existing function first (parameter name may differ)
-drop function if exists public.current_role_is(text);
-
--- Create helper function for role checks
-create function public.current_role_is(role_name text)
+-- Create or replace helper function using the existing parameter name 'r'
+-- (many policies depend on this function; cannot drop without CASCADE)
+create or replace function public.current_role_is(r text)
 returns boolean as $$
 begin
   return exists (
     select 1 from public.profiles
     where id = auth.uid()
-    and role = role_name
+    and role = r
   );
 end;
 $$ language plpgsql security definer;
