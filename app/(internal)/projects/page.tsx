@@ -17,7 +17,6 @@ export default async function ProjectsPage() {
     supabase.from("clients").select("id, name").order("created_at"),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const projects = (projectsRaw ?? []).map((p: any) => ({
     id: p.id,
     name: p.name,
@@ -41,23 +40,24 @@ export default async function ProjectsPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-50/50">
       <Topbar />
-      <div className="flex-1 overflow-y-auto p-5 md:p-8 [scrollbar-width:thin]">
+      <div className="flex-1 flex flex-col p-5 md:p-8 min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5 flex-shrink-0">
           <div>
             <h1 className="text-[24px] font-extrabold text-slate-900 tracking-tight">Projects</h1>
             <p className="text-[14px] text-slate-500 mt-1">
               {projects.length} project{projects.length !== 1 ? "s" : ""} across your workspace
             </p>
           </div>
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <AddProjectButton
             clients={(clients ?? []).map((c: any) => ({ id: c.id, name: c.name }))}
             teamProfiles={(profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }))}
           />
         </div>
 
-        <ProjectsView projects={projects} />
+        <div className="flex-1 min-h-0">
+          <ProjectsView projects={projects} />
+        </div>
       </div>
     </div>
   );
