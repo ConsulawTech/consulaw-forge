@@ -1,8 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Topbar } from "@/components/layout/Topbar";
-import { TaskStatusBadge } from "@/components/ui/Badge";
-import { Avatar } from "@/components/ui/Avatar";
-import { formatDate, getAvatarColor, deadlineStatus } from "@/lib/utils";
+import { formatDate, deadlineStatus } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -10,7 +8,8 @@ import { AddMilestoneButton } from "@/components/projects/AddMilestoneButton";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { GenerateTasksButton } from "@/components/projects/GenerateTasksButton";
-import { deleteProjectAction, deleteMilestoneAction, deleteTaskAction } from "@/app/actions/projects";
+import { CollapsibleMilestoneList } from "@/components/projects/CollapsibleMilestoneList";
+import { deleteProjectAction } from "@/app/actions/projects";
 
 function ProgressRing({ pct, color }: { pct: number; color: string }) {
   const r = 16;
@@ -106,88 +105,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
 
         {/* Tasks */}
-        {(project.milestones ?? []).length === 0 ? (
-          <div className="glass rounded-2xl p-12 text-center text-[#94a3b8] text-sm">
-            No tasks yet. Click &quot;Add Task&quot; to get started.
-          </div>
-        ) : (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (project.milestones ?? []).map((ms: any) => {
-            const dlMs = deadlineStatus(ms.deadline);
-            const msDone = (ms.tasks ?? []).filter((t: { status: string }) => t.status === "done").length;
-            const msTotal = (ms.tasks ?? []).length;
-            const msProgress = msTotal > 0 ? Math.round((msDone / msTotal) * 100) : 0;
-            return (
-              <div key={ms.id} className="glass rounded-2xl overflow-hidden mb-4">
-                {/* Task header */}
-                <div className="flex items-center gap-4 px-5 py-4 border-b border-white/50">
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: ms.color ?? "#1B3FEE" }} />
-                  <div className="flex-1">
-                    <div className="text-[14px] font-bold text-[#0f172a]">{ms.title}</div>
-                    {ms.description && <div className="text-[12px] text-[#475569] mt-0.5">{ms.description}</div>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {ms.deadline && (
-                      <span className={`text-[11.5px] font-semibold px-2.5 py-1 rounded-full ${
-                        dlMs === "ok" ? "bg-[rgba(16,185,129,0.1)] text-[#10b981]"
-                        : dlMs === "warn" ? "bg-[rgba(245,159,0,0.1)] text-[#f59f00]"
-                        : "bg-[rgba(239,68,68,0.1)] text-[#ef4444]"
-                      }`}>
-                        {formatDate(ms.deadline, { month: "short", day: "numeric", year: "numeric" })}
-                      </span>
-                    )}
-                    <ProgressRing pct={msProgress} color={ms.color ?? "#1B3FEE"} />
-                    <NewTaskButton
-                      projects={projectForModal}
-                      profiles={profilesForModal}
-                      defaultProjectId={project.id}
-                      label="+ Checkpoint"
-                      variant="inline"
-                    />
-                    <DeleteButton
-                      entityId={ms.id}
-                      entityName={ms.title}
-                      entityType="task"
-                      deleteAction={deleteMilestoneAction}
-                    />
-                  </div>
-                </div>
-
-                {/* Checkpoints */}
-                {(ms.tasks ?? []).length === 0 ? (
-                  <div className="px-5 py-4 text-[12px] text-[#94a3b8]">No checkpoints yet for this task.</div>
-                ) : (
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  (ms.tasks ?? []).map((task: any) => (
-                    <div key={task.id} className="flex items-center gap-3 px-5 py-3 border-b border-white/50 last:border-0 hover:bg-white/40 transition-colors group">
-                      <div className="min-w-[96px]">
-                        <div className="text-[12px] font-semibold text-[#0f172a]">
-                          {task.due_date ? formatDate(task.due_date, { month: "short", day: "numeric" }) : "No date"}
-                        </div>
-                      </div>
-                      {task.assignee ? (
-                        <Avatar name={task.assignee.full_name} color={getAvatarColor(task.assignee.full_name)} size="xs" />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-[rgba(148,163,184,0.2)] flex-shrink-0" />
-                      )}
-                      <div className="flex-1">
-                        <div className="text-[13px] font-medium text-[#0f172a]">{task.title}</div>
-                        <div className="text-[11px] text-[#94a3b8]">{task.assignee?.full_name ?? "Unassigned"}</div>
-                      </div>
-                      <TaskStatusBadge status={task.status} />
-                      <DeleteButton
-                        entityId={task.id}
-                        entityName={task.title}
-                        entityType="checkpoint"
-                        deleteAction={deleteTaskAction}
-                      />
-                    </div>
-                  ))
-                )}
-              </div>
-            );
-          })
-        )}
+        <CollapsibleMilestoneList
+          milestones={project.milestones ?? []}
+          projectId={project.id}
+          projectForModal={projectForModal}
+          profilesForModal={profilesForModal}
+        />
       </div>
     </div>
   );

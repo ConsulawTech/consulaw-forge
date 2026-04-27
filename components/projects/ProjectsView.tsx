@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   LayoutGrid,
@@ -46,19 +46,11 @@ function MilestoneCard({
   ms,
   expanded,
   onToggle,
-  draggable,
-  onDragStart,
-  onDragOver,
-  onDrop,
   dragOverId,
 }: {
   ms: Project["milestones"][0];
   expanded: boolean;
   onToggle: () => void;
-  draggable: boolean;
-  onDragStart: (e: React.DragEvent) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
   dragOverId: string | null;
 }) {
   const msTotal = ms.tasks.length;
@@ -67,13 +59,9 @@ function MilestoneCard({
 
   return (
     <div
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
       className={`glass rounded-xl border transition-all ${
         dragOverId === ms.id ? "border-[#1B3FEE]/40 shadow-[0_0_0_2px_rgba(27,63,238,0.1)]" : "border-white/40"
-      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+      }`}
     >
       {/* Milestone header */}
       <div
@@ -81,9 +69,7 @@ function MilestoneCard({
         onClick={onToggle}
       >
         <div className="flex items-center gap-2">
-          {draggable && (
-            <GripVertical className="w-3.5 h-3.5 text-[#94a3b8] flex-shrink-0" />
-          )}
+          <GripVertical className="w-3.5 h-3.5 text-[#94a3b8] flex-shrink-0" />
           <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ms.color }} />
           <span className="text-[12.5px] font-semibold text-[#0f172a]">{ms.title}</span>
         </div>
@@ -139,13 +125,9 @@ function MilestoneCard({
 
 function ProjectCard({
   project,
-  expanded,
-  onToggle,
   viewMode,
 }: {
   project: Project;
-  expanded: boolean;
-  onToggle: () => void;
   viewMode: "grid" | "list";
 }) {
   const dlStatus = deadlineStatus(project.target_date);
@@ -155,11 +137,18 @@ function ProjectCard({
   const lateTasks = allTasks.filter((t) => t.status === "late").length;
   const progress = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
 
+  // Each card manages its own expand state independently
+  const [expanded, setExpanded] = useState(false);
   const [milestones, setMilestones] = useState(project.milestones);
   const [collapsedMsIds, setCollapsedMsIds] = useState<Set<string>>(new Set());
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [reorderError, setReorderError] = useState("");
+
+  // Sync milestones with prop changes (e.g. after server revalidation)
+  useEffect(() => {
+    setMilestones(project.milestones);
+  }, [project.milestones]);
 
   const isList = viewMode === "list";
 
@@ -217,7 +206,6 @@ function ProjectCard({
       );
       if (!result.success) {
         setReorderError(result.error);
-        // Revert on error
         setMilestones(project.milestones);
       } else {
         setReorderError("");
@@ -225,11 +213,6 @@ function ProjectCard({
     },
     [milestones, project.id, project.milestones]
   );
-
-  const handleDragEnd = useCallback(() => {
-    setDraggingId(null);
-    setDragOverId(null);
-  }, []);
 
   return (
     <div
@@ -263,7 +246,7 @@ function ProjectCard({
             variant="icon"
           />
           <button
-            onClick={onToggle}
+            onClick={() => setExpanded((v) => !v)}
             className="w-8 h-8 rounded-lg hover:bg-white/50 flex items-center justify-center transition-colors"
             title={expanded ? "Collapse" : "Expand"}
           >
@@ -333,21 +316,27 @@ function ProjectCard({
               {reorderError}
             </div>
           )}
-          <div className="text-[11px] text-[#94a3b8] flex items-center gap-1 mb-1">
-            <GripVertical className="w-3 h-3" /> Drag to reorder tasks
-          </div>
+          {milestones.length > 0 && (
+            <div className="text-[11px] text-[#94a3b8] flex items-center gap-1 mb-1">
+              <GripVertical className="w-3 h-3" /> Drag to reorder tasks
+            </div>
+          )}
           {milestones.map((ms) => (
-            <MilestoneCard
+            <div
               key={ms.id}
-              ms={ms}
-              expanded={!collapsedMsIds.has(ms.id)}
-              onToggle={() => toggleMs(ms.id)}
-              draggable={true}
+              draggable
               onDragStart={(e) => handleDragStart(e, ms.id)}
               onDragOver={(e) => handleDragOver(e, ms.id)}
               onDrop={(e) => handleDrop(e, ms.id)}
-              dragOverId={dragOverId}
-            />
+              onDragEnd={() => { setDraggingId(null); setDragOverId(null); }}
+            >
+              <MilestoneCard
+                ms={ms}
+                expanded={!collapsedMsIds.has(ms.id)}
+                onToggle={() => toggleMs(ms.id)}
+                dragOverId={dragOverId}
+              />
+            </div>
           ))}
           {milestones.length === 0 && (
             <p className="text-[13px] text-[#94a3b8] text-center py-4">No tasks set up yet.</p>
@@ -375,16 +364,6 @@ function ProjectCard({
 
 export function ProjectsView({ projects }: { projects: Project[] }) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-
-  function toggleExpand(id: string) {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   return (
     <>
@@ -417,8 +396,6 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
               key={project.id}
               project={project}
               viewMode={viewMode}
-              expanded={expandedIds.has(project.id)}
-              onToggle={() => toggleExpand(project.id)}
             />
           ))}
         </div>
