@@ -36,11 +36,13 @@ export async function generateProjectTasksAction(
     .map((p) => `- ${p.full_name}${p.job_title ? ` (${p.job_title})` : ""} [id:${p.id}]`)
     .join("\n");
 
-  const targetDateContext = targetDate
-    ? `Project Delivery/Target Date: ${targetDate}. All tasks and checkpoints should be scheduled to complete BEFORE this date. Assign realistic deadlines to each task and checkpoint, working backwards from the target date.`
-    : "No target date provided. Assign realistic relative timelines (e.g., 'Week 1', 'Week 2') but do not include dueDate fields.";
+  const today = new Date().toISOString().split("T")[0];
 
-  const prompt = `You are a project management AI assistant. Given a project name, description, and delivery date, generate a comprehensive breakdown of high-level tasks and their checkpoints with realistic deadlines.
+  const targetDateContext = targetDate
+    ? `Today is ${today}. Project Delivery/Target Date: ${targetDate}. All tasks and checkpoints must be scheduled between today and the target date. Assign realistic deadlines working forward from today, ensuring the final checkpoint completes at least 2-3 days before the target date.`
+    : `Today is ${today}. No target date provided. Assign realistic relative timelines (e.g., 'Week 1', 'Week 2') but do not include dueDate fields.`;
+
+  const prompt = `You are a project management AI assistant. Given a project name, description, today's date, and delivery date, generate a comprehensive breakdown of high-level tasks and their checkpoints with realistic deadlines.
 
 Project Name: ${projectName}
 Project Description: ${projectDescription || "No description provided."}

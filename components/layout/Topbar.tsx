@@ -49,6 +49,8 @@ export function Topbar({ tabs }: TopbarProps) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notifLoaded, setNotifLoaded] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [messageNotifs, setMessageNotifs] = useState<any[]>([]);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -121,16 +123,35 @@ export function Topbar({ tabs }: TopbarProps) {
   async function loadNotifications() {
     if (notifLoaded) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any)
-      .from("tasks")
-      .select("id, title, status, due_date, project:projects(name)")
-      .in("status", ["late", "in_progress"])
-      .order("due_date")
-      .limit(5);
-    const notifs = data ?? [];
-    setNotifications(notifs);
+    const db = supabase as any;
+
+    const [{ data: tasks }, { data: recentMessages }, { data: recentInternal }] = await Promise.all([
+      db.from("tasks")
+        .select("id, title, status, due_date, project:projects(name)")
+        .in("status", ["late", "in_progress"])
+        .order("due_date")
+        .limit(5),
+      db.from("messages")
+        .select("id, sender_name, content, created_at, project:projects(name)")
+        .order("created_at", { ascending: false })
+        .limit(3),
+      db.from("internal_messages")
+        .select("id, sender_name, content, created_at, project_id")
+        .order("created_at", { ascending: false })
+        .limit(3),
+    ]);
+
+    const taskNotifs = (tasks ?? []).map((t: any) => ({ ...t, notifType: "task" }));
+    const msgNotifs = (recentMessages ?? []).map((m: any) => ({ ...m, notifType: "message" }));
+    const internalNotifs = (recentInternal ?? []).map((m: any) => ({ ...m, notifType: "internal_message" }));
+
+    const combinedMessages = [...msgNotifs, ...internalNotifs].sort(
+      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ).slice(0, 5);
+    setNotifications(taskNotifs);
+    setMessageNotifs(combinedMessages);
     setNotifLoaded(true);
-    if (notifs.length === 0) setHasUnread(false);
+    if (taskNotifs.length === 0 && combinedMessages.length === 0) setHasUnread(false);
   }
 
   function openBell() {
@@ -287,51 +308,96 @@ export function Topbar({ tabs }: TopbarProps) {
           </button>
 
           {bellOpen && (
-            <div className="absolute top-full right-0 mt-1.5 w-[320px] glass rounded-xl overflow-hidden shadow-[0_16px_32px_rgba(0,0,0,0.12)] border border-white/60 z-50">
-              <div className="px-4 py-3 border-b border-white/50 flex items-center justify-between">
+            <div className="absolute top-full right-0 mt-1.5 w-[340px] bg-white rounded-xl overflow-hidden shadow-[0_16px_32px_rgba(0,0,0,0.12)] border border-[#e2e8f0] z-50">
+              <div className="px-4 py-3 border-b border-[#f1f5f9] flex items-center justify-between">
                 <span className="text-[13px] font-bold text-[#0f172a]">Notifications</span>
-                {notifications.length > 0 && (
+                {(notifications.length + messageNotifs.length) > 0 && (
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[rgba(239,68,68,0.1)] text-[#ef4444]">
-                    {notifications.length} active
+                    {notifications.length + messageNotifs.length}
                   </span>
                 )}
               </div>
 
               {!notifLoaded ? (
                 <div className="px-4 py-6 text-center text-[13px] text-[#94a3b8]">Loading…</div>
-              ) : notifications.length === 0 ? (
+              ) : (notifications.length === 0 && messageNotifs.length === 0) ? (
                 <div className="px-4 py-8 text-center">
                   <div className="text-2xl mb-2">🎉</div>
                   <div className="text-[13px] font-semibold text-[#0f172a]">All caught up!</div>
-                  <div className="text-[12px] text-[#94a3b8] mt-0.5">No overdue or in-progress tasks</div>
+                  <div className="text-[12px] text-[#94a3b8] mt-0.5">No tasks or messages</div>
                 </div>
               ) : (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                notifications.map((n: any) => (
-                  <div key={n.id} className="px-4 py-3 border-b border-white/40 last:border-0 hover:bg-white/40 transition-colors">
-                    <div className="flex items-start gap-2.5">
-                      <div className={cn(
-                        "w-1.5 h-1.5 rounded-full mt-[5px] flex-shrink-0",
-                        n.status === "late" ? "bg-[#ef4444]" : "bg-[#1B3FEE]"
-                      )} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[12.5px] font-medium text-[#0f172a] truncate">{n.title}</div>
-                        <div className="text-[11px] text-[#94a3b8] mt-0.5 flex items-center gap-1">
-                          <span className={cn(
-                            "font-semibold",
-                            n.status === "late" ? "text-[#ef4444]" : "text-[#1B3FEE]"
-                          )}>
-                            {n.status === "late" ? "Overdue" : "In Progress"}
-                          </span>
-                          {n.project?.name && <> · {n.project.name}</>}
+                <div className="max-h-[360px] overflow-y-auto">
+                  {/* Tasks */}
+                  {notifications.length > 0 && (
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] bg-[#f8fafc]">
+                      Tasks
+                    </div>
+                  )}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {notifications.map((n: any) => (
+                    <Link
+                      key={`task-${n.id}`}
+                      href="/tasks"
+                      onClick={() => setBellOpen(false)}
+                      className="block px-4 py-3 border-b border-[#f1f5f9] last:border-0 hover:bg-[#f8fafc] transition-colors"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div className={cn(
+                          "w-1.5 h-1.5 rounded-full mt-[5px] flex-shrink-0",
+                          n.status === "late" ? "bg-[#ef4444]" : "bg-[#1B3FEE]"
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[12.5px] font-medium text-[#0f172a] truncate">{n.title}</div>
+                          <div className="text-[11px] text-[#94a3b8] mt-0.5 flex items-center gap-1">
+                            <span className={cn(
+                              "font-semibold",
+                              n.status === "late" ? "text-[#ef4444]" : "text-[#1B3FEE]"
+                            )}>
+                              {n.status === "late" ? "Overdue" : "In Progress"}
+                            </span>
+                            {n.project?.name && <> · {n.project.name}</>}
+                          </div>
                         </div>
                       </div>
+                    </Link>
+                  ))}
+
+                  {/* Messages */}
+                  {messageNotifs.length > 0 && (
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] bg-[#f8fafc]">
+                      Messages
                     </div>
-                  </div>
-                ))
+                  )}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {messageNotifs.map((n: any) => (
+                    <Link
+                      key={`msg-${n.id}`}
+                      href="/messages"
+                      onClick={() => setBellOpen(false)}
+                      className="block px-4 py-3 border-b border-[#f1f5f9] last:border-0 hover:bg-[#f8fafc] transition-colors"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-6 h-6 rounded-full bg-[rgba(27,63,238,0.08)] flex items-center justify-center flex-shrink-0">
+                          <MessageSquare className="w-3 h-3 text-[#1B3FEE]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[12.5px] font-medium text-[#0f172a]">
+                            <span className="text-[#1B3FEE] font-semibold">{n.sender_name}</span>
+                            <span className="text-[#94a3b8] mx-1">·</span>
+                            <span className="truncate">{n.content}</span>
+                          </div>
+                          <div className="text-[11px] text-[#94a3b8] mt-0.5">
+                            {n.project?.name || (n.project_id ? "Team chat" : "Direct message")}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               )}
 
-              <div className="px-4 py-2.5 border-t border-white/50 bg-[rgba(241,245,249,0.3)]">
+              <div className="px-4 py-2.5 border-t border-[#f1f5f9] bg-[#f8fafc]">
                 <Link
                   href="/tasks"
                   onClick={() => setBellOpen(false)}

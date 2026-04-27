@@ -596,7 +596,7 @@ export function InternalMessages({
             );
           })}
 
-          {(activeTab === "team" || activeTab === "dm") && (currentMessages as InternalMessage[]).map((msg) => {
+          {activeTab === "team" && (currentMessages as InternalMessage[]).map((msg) => {
             const isMe = msg.sender_id === senderId;
             return (
               <div key={msg.id} className={`flex items-end gap-2 max-w-[72%] ${isMe ? "self-end flex-row-reverse" : "self-start"}`}>
@@ -607,6 +607,29 @@ export function InternalMessages({
                   <span className={`text-[11px] text-[#94a3b8] font-medium mb-1 px-1 ${isMe ? "text-right" : "text-left"}`}>
                     {msg.sender_name}
                   </span>
+                  <div
+                    className="px-4 py-2.5 text-[13.5px] leading-[1.5] shadow-sm"
+                    style={
+                      isMe
+                        ? { background: "#1B3FEE", color: "#fff", borderRadius: "16px 4px 16px 16px" }
+                        : { background: "rgba(255,255,255,0.85)", color: "#0f172a", borderRadius: "4px 16px 16px 16px", border: "1px solid rgba(203,213,225,0.4)" }
+                    }
+                  >
+                    {msg.content}
+                  </div>
+                  <span className={`text-[10.5px] text-[#94a3b8] mt-1 px-1 ${isMe ? "text-right" : "text-left"}`}>
+                    {formatTime(msg.created_at)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {activeTab === "dm" && (currentMessages as InternalMessage[]).map((msg) => {
+            const isMe = msg.sender_id === senderId;
+            return (
+              <div key={msg.id} className={`flex items-end gap-2 max-w-[72%] ${isMe ? "self-end flex-row-reverse" : "self-start"}`}>
+                <div className="flex flex-col">
                   <div
                     className="px-4 py-2.5 text-[13.5px] leading-[1.5] shadow-sm"
                     style={
