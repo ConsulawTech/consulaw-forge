@@ -78,7 +78,7 @@ If no team members are available, use empty string for assigneeRoleHint.`;
         temperature: 0.7,
         max_tokens: 2000,
       }),
-      20000,
+      30000,
       "DeepSeek API call"
     );
 

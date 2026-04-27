@@ -259,7 +259,7 @@ export async function bulkCreateProjectTasksAction(
     project_id: projectId,
     color: colors[i % colors.length],
     order_index: startOrder + i,
-    due_date: m.dueDate || null,
+    deadline: m.dueDate || null,
   }));
 
   const { data: insertedMilestones, error: milestoneError } = await db
