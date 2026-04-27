@@ -11,7 +11,8 @@ export default async function ProjectsPage() {
     supabase
       .from("projects")
       .select("*, client:clients(*), milestones(*, tasks(*))")
-      .order("created_at"),
+      .order("created_at")
+      .order("order_index", { referencedTable: "milestones", ascending: true }),
     supabase.from("profiles").select("id, full_name, job_title").eq("role", "team"),
     supabase.from("clients").select("id, name").order("created_at"),
   ]);

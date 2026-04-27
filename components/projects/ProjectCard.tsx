@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
   ChevronDown,
-  CheckCircle2,
-  Circle,
-  AlertCircle,
-  Clock,
   FolderKanban,
   ArrowRight,
 } from "lucide-react";
@@ -35,17 +30,17 @@ interface Project {
   milestones: Milestone[];
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  done:        { label: "Done",        color: "#10b981" },
-  in_progress: { label: "In Progress", color: "#1B3FEE" },
-  late:        { label: "Overdue",     color: "#ef4444" },
-  todo:        { label: "To Do",       color: "#94a3b8" },
-};
-
-export function ProjectCard({ project, viewMode }: { project: Project; viewMode: "grid" | "list" }) {
-  const cardId = useRef(`card-${project.id}-${Math.random().toString(36).slice(2, 8)}`);
-  const [expanded, setExpanded] = useState(false);
-
+export function ProjectCard({
+  project,
+  viewMode,
+  isExpanded,
+  onToggle,
+}: {
+  project: Project;
+  viewMode: "grid" | "list";
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
   const dlStatus = deadlineStatus(project.target_date);
   const allTasks = project.milestones.flatMap((m) => m.tasks);
   const doneTasks = allTasks.filter((t) => t.status === "done").length;
@@ -55,13 +50,8 @@ export function ProjectCard({ project, viewMode }: { project: Project; viewMode:
 
   const isList = viewMode === "list";
 
-  const handleToggle = useCallback(() => {
-    setExpanded((prev) => !prev);
-  }, []);
-
   return (
     <div
-      data-card-id={cardId.current}
       className={`rounded-2xl border border-slate-200/60 bg-white shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ${
         isList ? "p-5" : "p-5 flex flex-col"
       }`}
@@ -92,11 +82,11 @@ export function ProjectCard({ project, viewMode }: { project: Project; viewMode:
             variant="icon"
           />
           <button
-            onClick={handleToggle}
+            onClick={onToggle}
             className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
-            title={expanded ? "Collapse" : "Expand"}
+            title={isExpanded ? "Collapse" : "Expand"}
           >
-            {expanded ? (
+            {isExpanded ? (
               <ChevronDown className="w-4 h-4 text-slate-500" />
             ) : (
               <ChevronRight className="w-4 h-4 text-slate-500" />
@@ -158,7 +148,7 @@ export function ProjectCard({ project, viewMode }: { project: Project; viewMode:
       </div>
 
       {/* Expanded — SUMMARY ONLY (no drag handles, no color bars, no checkpoint details) */}
-      {expanded && (
+      {isExpanded && (
         <div className="mt-4 pt-4 border-t border-slate-100">
           {project.milestones.length === 0 ? (
             <p className="text-[13px] text-slate-400 text-center py-4">No tasks set up yet.</p>
@@ -203,7 +193,7 @@ export function ProjectCard({ project, viewMode }: { project: Project; viewMode:
       )}
 
       {/* CTA when collapsed */}
-      {!expanded && !isList && (
+      {!isExpanded && !isList && (
         <Link href={`/projects/${project.id}`} className="mt-auto pt-4">
           <Button variant="primary" size="sm" className="w-full">
             View Project <ArrowRight className="w-3.5 h-3.5" />

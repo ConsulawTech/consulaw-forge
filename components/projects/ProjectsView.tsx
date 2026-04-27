@@ -21,6 +21,11 @@ interface Project {
 
 export function ProjectsView({ projects }: { projects: Project[] }) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const handleToggle = (projectId: string) => {
+    setExpandedId((prev) => (prev === projectId ? null : projectId));
+  };
 
   return (
     <>
@@ -57,6 +62,8 @@ export function ProjectsView({ projects }: { projects: Project[] }) {
               key={project.id}
               project={project}
               viewMode={viewMode}
+              isExpanded={expandedId === project.id}
+              onToggle={() => handleToggle(project.id)}
             />
           ))}
         </div>

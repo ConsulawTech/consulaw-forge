@@ -20,6 +20,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       .from("projects")
       .select("*, client:clients(*), milestones(*, tasks(*, assignee:profiles(*)))")
       .eq("id", id)
+      .order("order_index", { referencedTable: "milestones", ascending: true })
       .single(),
     supabase.from("profiles").select("id, full_name, job_title").eq("role", "team"),
   ]);

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { ChevronDown, ChevronRight, Calendar, User } from "lucide-react";
+import { useState, useCallback, useOptimistic } from "react";
+import { ChevronDown, ChevronRight, Calendar, User, ArrowUp, ArrowDown } from "lucide-react";
 import { formatDate, getAvatarColor, deadlineStatus } from "@/lib/utils";
 import { TaskStatusBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
-import { deleteMilestoneAction, deleteTaskAction } from "@/app/actions/projects";
+import { deleteMilestoneAction, deleteTaskAction, updateMilestoneOrderAction } from "@/app/actions/projects";
 
 function ProgressRing({ pct, color }: { pct: number; color: string }) {
   const r = 15;
@@ -36,13 +36,14 @@ interface CollapsibleMilestoneListProps {
 }
 
 export function CollapsibleMilestoneList({
-  milestones,
+  milestones: initialMilestones,
   projectId,
   projectForModal,
   profilesForModal,
 }: CollapsibleMilestoneListProps) {
+  const [optimisticMilestones, setOptimisticMilestones] = useOptimistic(initialMilestones);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
-    () => new Set(milestones.map((m) => m.id))
+    () => new Set(initialMilestones.map((m) => m.id))
   );
 
   const toggle = useCallback((id: string) => {
@@ -54,21 +55,41 @@ export function CollapsibleMilestoneList({
     });
   }, []);
 
-  if (milestones.length === 0) {
+  const handleMove = useCallback(
+    async (index: number, direction: "up" | "down") => {
+      const swapIndex = direction === "up" ? index - 1 : index + 1;
+      if (swapIndex < 0 || swapIndex >= optimisticMilestones.length) return;
+
+      const newMilestones = [...optimisticMilestones];
+      [newMilestones[index], newMilestones[swapIndex]] = [
+        newMilestones[swapIndex],
+        newMilestones[index],
+      ];
+
+      // Optimistic update
+      setOptimisticMilestones(newMilestones);
+
+      const newOrderIds = newMilestones.map((m) => m.id);
+      await updateMilestoneOrderAction(projectId, newOrderIds);
+    },
+    [optimisticMilestones, projectId, setOptimisticMilestones]
+  );
+
+  if (optimisticMilestones.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-200/60 bg-white/50 p-12 text-center">
         <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
           <Calendar className="w-6 h-6 text-slate-400" />
         </div>
         <p className="text-[15px] font-semibold text-slate-900 mb-1">No tasks yet</p>
-        <p className="text-[13px] text-slate-500">Click "Add Task" to get started.</p>
+        <p className="text-[13px] text-slate-500">Click &quot;Add Task&quot; to get started.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {milestones.map((ms) => {
+      {optimisticMilestones.map((ms, index) => {
         const dlMs = deadlineStatus(ms.deadline);
         const msDone = (ms.tasks ?? []).filter((t: { status: string }) => t.status === "done").length;
         const msTotal = (ms.tasks ?? []).length;
@@ -81,22 +102,42 @@ export function CollapsibleMilestoneList({
             className="rounded-2xl border border-slate-200/60 bg-white/70 backdrop-blur-sm shadow-sm overflow-hidden"
           >
             {/* Task header */}
-            <button
-              onClick={() => toggle(ms.id)}
-              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors text-left"
-            >
+            <div className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors text-left">
               {/* Color bar */}
               <div
                 className="w-1 h-10 rounded-full flex-shrink-0"
                 style={{ background: ms.color ?? "#1B3FEE" }}
               />
 
-              <div className="flex-1 min-w-0">
+              <button
+                onClick={() => toggle(ms.id)}
+                className="flex-1 min-w-0 text-left"
+              >
                 <div className="text-[15px] font-bold text-slate-900">{ms.title}</div>
                 {ms.description && <div className="text-[12px] text-slate-500 mt-0.5">{ms.description}</div>}
-              </div>
+              </button>
 
               <div className="flex items-center gap-3 flex-shrink-0">
+                {/* Move up/down */}
+                <div className="flex flex-col gap-0.5 mr-1">
+                  <button
+                    onClick={() => handleMove(index, "up")}
+                    disabled={index === 0}
+                    className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-colors"
+                    title="Move up"
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleMove(index, "down")}
+                    disabled={index === optimisticMilestones.length - 1}
+                    className="w-5 h-5 rounded flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 transition-colors"
+                    title="Move down"
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                  </button>
+                </div>
+
                 {ms.deadline && (
                   <span className={`text-[12px] font-semibold px-2.5 py-1 rounded-full ${
                     dlMs === "ok" ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
@@ -122,13 +163,15 @@ export function CollapsibleMilestoneList({
                     deleteAction={deleteMilestoneAction}
                   />
                 </div>
-                {isExpanded ? (
-                  <ChevronDown className="w-5 h-5 text-slate-400" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-slate-400" />
-                )}
+                <button onClick={() => toggle(ms.id)} className="hover:bg-slate-100 rounded-lg p-1 transition-colors">
+                  {isExpanded ? (
+                    <ChevronDown className="w-5 h-5 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                  )}
+                </button>
               </div>
-            </button>
+            </div>
 
             {/* Checkpoints */}
             {isExpanded && (
