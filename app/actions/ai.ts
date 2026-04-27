@@ -9,7 +9,8 @@ const deepseek = new OpenAI({
 
 export interface AiTaskSuggestion {
   title: string;
-  checkpoints: { title: string; assigneeRoleHint: string }[];
+  checkpoints: { title: string; assigneeRoleHint: string; dueDate?: string }[];
+  dueDate?: string;
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -24,7 +25,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 export async function generateProjectTasksAction(
   projectName: string,
   projectDescription: string | null,
-  teamProfiles: { id: string; full_name: string; job_title: string | null }[]
+  teamProfiles: { id: string; full_name: string; job_title: string | null }[],
+  targetDate?: string | null
 ): Promise<{ success: true; tasks: AiTaskSuggestion[] } | { success: false; error: string }> {
   if (!process.env.DEEPSEEK_API_KEY) {
     return { success: false, error: "DeepSeek API key not configured." };
@@ -34,10 +36,15 @@ export async function generateProjectTasksAction(
     .map((p) => `- ${p.full_name}${p.job_title ? ` (${p.job_title})` : ""} [id:${p.id}]`)
     .join("\n");
 
-  const prompt = `You are a project management AI assistant. Given a project name and description, generate a comprehensive breakdown of high-level tasks and their checkpoints.
+  const targetDateContext = targetDate
+    ? `Project Delivery/Target Date: ${targetDate}. All tasks and checkpoints should be scheduled to complete BEFORE this date. Assign realistic deadlines to each task and checkpoint, working backwards from the target date.`
+    : "No target date provided. Assign realistic relative timelines (e.g., 'Week 1', 'Week 2') but do not include dueDate fields.";
+
+  const prompt = `You are a project management AI assistant. Given a project name, description, and delivery date, generate a comprehensive breakdown of high-level tasks and their checkpoints with realistic deadlines.
 
 Project Name: ${projectName}
 Project Description: ${projectDescription || "No description provided."}
+${targetDateContext}
 
 Available team members:
 ${teamContext || "No team members available yet."}
@@ -46,12 +53,14 @@ Instructions:
 1. Generate 3-8 high-level tasks (e.g., UI/UX Design, Frontend Development, Backend Development, API Integration, Testing, Deployment).
 2. For each task, generate 3-10 specific checkpoints (deliverables or sub-tasks).
 3. For each checkpoint, suggest the most appropriate team member by matching their job title to the work. Use their exact ID from the list above in the assigneeRoleHint field.
-4. Respond ONLY with valid JSON in this exact format:
+4. ${targetDate ? "Each task and checkpoint MUST include a dueDate in ISO 8601 format (YYYY-MM-DD). Schedule them so the final checkpoint completes at least 2-3 days before the target date to allow buffer time." : "Do not include dueDate fields."}
+5. Respond ONLY with valid JSON in this exact format:
 [
   {
     "title": "Task name",
+    ${targetDate ? `"dueDate": "YYYY-MM-DD",` : ""}
     "checkpoints": [
-      { "title": "Checkpoint name", "assigneeRoleHint": "exact-profile-id-from-list" }
+      { "title": "Checkpoint name", "assigneeRoleHint": "exact-profile-id-from-list"${targetDate ? `, "dueDate": "YYYY-MM-DD"` : ""} }
     ]
   }
 ]
@@ -93,11 +102,13 @@ If no team members are available, use empty string for assigneeRoleHint.`;
       .filter((t) => t.title && Array.isArray(t.checkpoints))
       .map((t) => ({
         title: t.title,
+        dueDate: t.dueDate || undefined,
         checkpoints: t.checkpoints
           .filter((c) => c.title)
           .map((c) => ({
             title: c.title,
             assigneeRoleHint: c.assigneeRoleHint || "",
+            dueDate: c.dueDate || undefined,
           })),
       }))
       .filter((t) => t.checkpoints.length > 0);

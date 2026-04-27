@@ -15,6 +15,7 @@ interface GenerateTasksButtonProps {
   projectId: string;
   projectName: string;
   projectDescription: string | null;
+  targetDate?: string | null;
   teamProfiles: TeamProfile[];
 }
 
@@ -22,6 +23,7 @@ export function GenerateTasksButton({
   projectId,
   projectName,
   projectDescription,
+  targetDate,
   teamProfiles,
 }: GenerateTasksButtonProps) {
   const [open, setOpen] = useState(false);
@@ -37,6 +39,7 @@ export function GenerateTasksButton({
           projectId={projectId}
           projectName={projectName}
           projectDescription={projectDescription}
+          targetDate={targetDate}
           teamProfiles={teamProfiles}
           onClose={() => setOpen(false)}
           onDone={() => setOpen(false)}

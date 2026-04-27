@@ -78,6 +78,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               projectId={project.id}
               projectName={project.name}
               projectDescription={project.description}
+              targetDate={project.target_date}
               teamProfiles={teamProfilesForAi}
             />
             <AddMilestoneButton projects={[{ id: project.id, name: project.name }]} defaultProjectId={project.id} label="Add Task" />

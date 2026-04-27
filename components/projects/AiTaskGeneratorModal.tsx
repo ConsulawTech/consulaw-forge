@@ -17,13 +17,15 @@ interface AiTaskGeneratorModalProps {
   projectName: string;
   projectDescription: string | null;
   teamProfiles: TeamProfile[];
+  targetDate?: string | null;
   onClose: () => void;
   onDone: () => void;
 }
 
 interface EditableTask {
   title: string;
-  checkpoints: { title: string; assigneeId: string | null }[];
+  dueDate?: string;
+  checkpoints: { title: string; assigneeId: string | null; dueDate?: string }[];
 }
 
 export function AiTaskGeneratorModal({
@@ -31,6 +33,7 @@ export function AiTaskGeneratorModal({
   projectName,
   projectDescription,
   teamProfiles,
+  targetDate,
   onClose,
   onDone,
 }: AiTaskGeneratorModalProps) {
@@ -49,7 +52,7 @@ export function AiTaskGeneratorModal({
     setStep("generating");
     setError("");
 
-    const result = await generateProjectTasksAction(projectName, projectDescription, teamProfiles);
+    const result = await generateProjectTasksAction(projectName, projectDescription, teamProfiles, targetDate);
 
     if (aborted.current) return;
 
@@ -62,9 +65,11 @@ export function AiTaskGeneratorModal({
 
     const mapped = result.tasks.map((t: AiTaskSuggestion) => ({
       title: t.title,
+      dueDate: t.dueDate,
       checkpoints: t.checkpoints.map((c) => ({
         title: c.title,
         assigneeId: teamProfiles.find((p) => p.id === c.assigneeRoleHint)?.id ?? null,
+        dueDate: c.dueDate,
       })),
     }));
 
@@ -76,12 +81,13 @@ export function AiTaskGeneratorModal({
     setStep("creating");
     setError("");
 
-    const milestonesData = tasks.map((t) => ({ title: t.title, description: null }));
+    const milestonesData = tasks.map((t) => ({ title: t.title, description: null, dueDate: t.dueDate }));
     const tasksData = tasks.flatMap((t, milestoneIndex) =>
       t.checkpoints.map((c) => ({
         title: c.title,
         milestoneIndex,
         assigneeId: c.assigneeId,
+        dueDate: c.dueDate,
       }))
     );
 

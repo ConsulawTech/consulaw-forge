@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { Activity, CheckSquare, Users, Clock, CheckCircle2, AlertCircle, Circle, FolderKanban } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { ProjectCard } from "@/components/portal/ProjectCard";
 import Link from "next/link";
 
 export default async function PortalPage() {
@@ -41,7 +42,7 @@ export default async function PortalPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ? (supabase as any)
           .from("tasks")
-          .select("id, title, status, due_date, project_id, milestone:milestones(title)")
+          .select("id, title, status, due_date, project_id, milestone_id, assignee:profiles(full_name, avatar_color)")
           .in("project_id", projectIds)
           .order("due_date")
       : Promise.resolve({ data: [] }),
@@ -153,125 +154,50 @@ export default async function PortalPage() {
         </div>
       )}
 
-      {/* One section per project */}
-      {projects.map((project: any) => {
-        const projectTasks: any[] = tasksByProject[project.id] ?? [];
-        const milestones: any[] = project.milestones ?? [];
-        const donePct = projectTasks.length > 0
-          ? Math.round(projectTasks.filter(t => t.status === "done").length / projectTasks.length * 100)
-          : 0;
-
-        return (
-          <div key={project.id} className="mb-4">
-            {/* Project header pill */}
-            <div className="flex items-center gap-2.5 mb-2.5 px-1">
-              <div className="w-6 h-6 rounded-[7px] bg-[rgba(27,63,238,0.1)] flex items-center justify-center">
-                <FolderKanban className="w-3.5 h-3.5 text-[#1B3FEE]" />
-              </div>
-              <span className="text-[15px] font-bold text-[#0f172a]">{project.name}</span>
-              {project.target_date && (
-                <span className="text-[12px] text-[#94a3b8]">
-                  · Due {formatDate(project.target_date, { month: "short", day: "numeric", year: "numeric" })}
-                </span>
-              )}
-              <span className="ml-auto text-[12px] font-semibold text-[#1B3FEE]">{donePct}% complete</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3.5">
-              {/* Tasks */}
-              <div className="glass rounded-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-[18px] py-3.5 border-b border-white/50">
-                  <div className="w-7 h-7 rounded-[8px] bg-[rgba(27,63,238,0.1)] flex items-center justify-center">
-                    <Activity className="w-3.5 h-3.5 text-[#1B3FEE]" />
-                  </div>
-                  <span className="text-[13px] font-bold text-[#0f172a]">Tasks</span>
-                </div>
-                <div className="p-[18px] flex flex-col gap-4">
-                  {milestones.map((ms: any) => {
-                    const msTasks = projectTasks.filter((t: any) => t.milestone?.id === ms.id || t.milestone_id === ms.id);
-                    const msDone = msTasks.filter((t: any) => t.status === "done").length;
-                    const msTotal = msTasks.length;
-                    const msProgress = msTotal > 0 ? Math.round((msDone / msTotal) * 100) : 0;
-                    return (
-                    <div key={ms.id}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="text-[12.5px] font-semibold text-[#0f172a]">{ms.title}</div>
-                        <span className="text-[12px] font-bold text-[#475569]">{msProgress}%</span>
-                      </div>
-                      <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-1.5">
-                        <div
-                          className="h-1.5 rounded-full transition-all duration-700"
-                          style={{ width: `${msProgress}%`, background: ms.color ?? "#1B3FEE" }}
-                        />
-                      </div>
-                      {ms.deadline && (
-                        <div className="text-[11px] text-[#94a3b8] mt-1">
-                          Due {formatDate(ms.deadline, { month: "short", day: "numeric", year: "numeric" })}
-                        </div>
-                      )}
-                    </div>
-                    );
-                  })}
-                  {milestones.length === 0 && (
-                    <p className="text-[13px] text-[#94a3b8]">No milestones set up yet.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Tasks */}
-              <div className="glass rounded-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-[18px] py-3.5 border-b border-white/50">
-                  <div className="w-7 h-7 rounded-[8px] bg-[rgba(245,159,0,0.1)] flex items-center justify-center">
-                    <CheckSquare className="w-3.5 h-3.5 text-[#f59f00]" />
-                  </div>
-                  <span className="text-[13px] font-bold text-[#0f172a]">Tasks</span>
-                  {projectTasks.length > 0 && (
-                    <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100/90 text-[#475569]">
-                      {donePct}% done
-                    </span>
-                  )}
-                </div>
-                <div className="divide-y divide-white/40 max-h-[260px] overflow-y-auto [scrollbar-width:thin]">
-                  {projectTasks.map((task: any) => {
-                    const statusConfig = {
-                      done:        { label: "Done",        color: "#10b981", bg: "rgba(16,185,129,0.1)"   },
-                      in_progress: { label: "In Progress", color: "#1B3FEE", bg: "rgba(27,63,238,0.1)"   },
-                      late:        { label: "Overdue",     color: "#ef4444", bg: "rgba(239,68,68,0.08)"  },
-                      todo:        { label: "To Do",       color: "#94a3b8", bg: "rgba(148,163,184,0.1)" },
-                    }[task.status as string] ?? { label: task.status, color: "#94a3b8", bg: "rgba(148,163,184,0.1)" };
-
-                    return (
-                      <div key={task.id} className="flex items-center gap-3 px-[18px] py-3 hover:bg-white/30 transition-colors">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusConfig.color }} />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium text-[#0f172a] truncate">{task.title}</div>
-                          {task.milestone?.title && (
-                            <div className="text-[11px] text-[#94a3b8] mt-0.5">{task.milestone.title}</div>
-                          )}
-                        </div>
-                        {task.due_date && (
-                          <div className="text-[11px] text-[#94a3b8] flex-shrink-0">
-                            {formatDate(task.due_date, { month: "short", day: "numeric" })}
-                          </div>
-                        )}
-                        <span
-                          className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                          style={{ color: statusConfig.color, background: statusConfig.bg }}
-                        >
-                          {statusConfig.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {projectTasks.length === 0 && (
-                    <div className="px-[18px] py-6 text-[13px] text-[#94a3b8]">No tasks yet.</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {/* Projects Grid */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <FolderKanban className="w-4 h-4 text-[#475569]" />
+          <span className="text-[13px] font-bold text-[#0f172a]">Your Projects</span>
+          <span className="text-[11px] text-[#94a3b8] ml-1">({projects.length})</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {projects.map((project: any) => {
+            const projectTasks: any[] = tasksByProject[project.id] ?? [];
+            const milestones: any[] = project.milestones ?? [];
+            // Build task/checkpoint data for modal
+            const tasks = milestones.map((ms: any) => {
+              const msTasks = projectTasks.filter((t: any) => t.milestone_id === ms.id);
+              return {
+                id: ms.id,
+                title: ms.title,
+                color: ms.color ?? "#1B3FEE",
+                deadline: ms.deadline ?? null,
+                checkpoints: msTasks.map((t: any) => ({
+                  id: t.id,
+                  title: t.title,
+                  status: t.status,
+                  due_date: t.due_date ?? null,
+                  assignee: t.assignee ? { full_name: t.assignee.full_name, avatar_color: t.assignee.avatar_color } : null,
+                })),
+              };
+            });
+            return (
+              <ProjectCard
+                key={project.id}
+                project={{
+                  id: project.id,
+                  name: project.name,
+                  description: project.description,
+                  target_date: project.target_date,
+                  status: project.status,
+                  tasks,
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
 
       {/* Recent Updates (across all projects) */}
       {(allUpdatesRaw ?? []).length > 0 && (

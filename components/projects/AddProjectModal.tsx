@@ -33,6 +33,7 @@ export function AddProjectModal({ clients, preselectedClientId, teamProfiles, on
   const [showAiModal, setShowAiModal] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
+  const [projectTargetDate, setProjectTargetDate] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -48,8 +49,10 @@ export function AddProjectModal({ clients, preselectedClientId, teamProfiles, on
     } else {
       const name = (formData.get("name") as string)?.trim() ?? "";
       const desc = (formData.get("description") as string)?.trim() ?? null;
+      const tdate = (formData.get("target_date") as string)?.trim() ?? null;
       setProjectName(name);
       setProjectDescription(desc ?? "");
+      setProjectTargetDate(tdate);
       setCreatedProjectId(result.projectId);
       setStep("success");
     }
@@ -169,6 +172,7 @@ export function AddProjectModal({ clients, preselectedClientId, teamProfiles, on
           projectId={createdProjectId}
           projectName={projectName}
           projectDescription={projectDescription}
+          targetDate={projectTargetDate}
           teamProfiles={teamProfiles}
           onClose={onClose}
           onDone={onDone}

@@ -204,8 +204,8 @@ export async function deleteTaskAction(taskId: string): Promise<{ success: true 
 
 export async function bulkCreateProjectTasksAction(
   projectId: string,
-  milestonesData: { title: string; description?: string | null }[],
-  tasksData: { title: string; milestoneIndex: number; assigneeId: string | null }[]
+  milestonesData: { title: string; description?: string | null; dueDate?: string | null }[],
+  tasksData: { title: string; milestoneIndex: number; assigneeId: string | null; dueDate?: string | null }[]
 ): Promise<{ success: true } | { success: false; error: string }> {
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -231,6 +231,7 @@ export async function bulkCreateProjectTasksAction(
     project_id: projectId,
     color: colors[i % colors.length],
     order_index: startOrder + i,
+    due_date: m.dueDate || null,
   }));
 
   const { data: insertedMilestones, error: milestoneError } = await db
@@ -255,6 +256,7 @@ export async function bulkCreateProjectTasksAction(
       milestone_id: milestoneIdMap.get(actualOrderIndex) ?? null,
       assignee_id: t.assigneeId,
       status: "todo",
+      due_date: t.dueDate || null,
     };
   });
 
