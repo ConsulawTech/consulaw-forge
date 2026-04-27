@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import { LayoutGrid, List, ChevronRight, ChevronDown, CheckCircle2, Circle, AlertCircle, Clock, FolderKanban } from "lucide-react";
+import {
+  LayoutGrid,
+  List,
+  ChevronRight,
+  ChevronDown,
+  CheckCircle2,
+  Circle,
+  AlertCircle,
+  Clock,
+  FolderKanban,
+  GripVertical,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DeleteButton } from "@/components/ui/DeleteButton";
+import { SingleProjectReportButton } from "./SingleProjectReportButton";
 import { formatDate, deadlineStatus } from "@/lib/utils";
-import { deleteProjectAction } from "@/app/actions/projects";
+import { deleteProjectAction, updateMilestoneOrderAction } from "@/app/actions/projects";
 
 interface Project {
   id: string;
@@ -30,6 +42,101 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   todo:        { label: "To Do",       color: "#94a3b8", bg: "rgba(148,163,184,0.1)", icon: Clock },
 };
 
+function MilestoneCard({
+  ms,
+  expanded,
+  onToggle,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  dragOverId,
+}: {
+  ms: Project["milestones"][0];
+  expanded: boolean;
+  onToggle: () => void;
+  draggable: boolean;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  dragOverId: string | null;
+}) {
+  const msTotal = ms.tasks.length;
+  const msDone = ms.tasks.filter((t) => t.status === "done").length;
+  const msProgress = msTotal > 0 ? Math.round((msDone / msTotal) * 100) : 0;
+
+  return (
+    <div
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className={`glass rounded-xl border transition-all ${
+        dragOverId === ms.id ? "border-[#1B3FEE]/40 shadow-[0_0_0_2px_rgba(27,63,238,0.1)]" : "border-white/40"
+      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+    >
+      {/* Milestone header */}
+      <div
+        className="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-white/20 transition-colors rounded-xl"
+        onClick={onToggle}
+      >
+        <div className="flex items-center gap-2">
+          {draggable && (
+            <GripVertical className="w-3.5 h-3.5 text-[#94a3b8] flex-shrink-0" />
+          )}
+          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ms.color }} />
+          <span className="text-[12.5px] font-semibold text-[#0f172a]">{ms.title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-[#475569]">{msProgress}%</span>
+          {expanded ? (
+            <ChevronDown className="w-3.5 h-3.5 text-[#94a3b8]" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 text-[#94a3b8]" />
+          )}
+        </div>
+      </div>
+
+      {/* Expanded checkpoint list */}
+      {expanded && (
+        <div className="px-3 pb-3 pt-1 border-t border-white/30">
+          <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-1.5 mb-2">
+            <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${msProgress}%`, background: ms.color }} />
+          </div>
+          {ms.deadline && (
+            <div className="text-[11px] text-[#94a3b8] mb-2">
+              Due {formatDate(ms.deadline, { month: "short", day: "numeric", year: "numeric" })}
+            </div>
+          )}
+          <div className="flex flex-col gap-1">
+            {ms.tasks.map((task) => {
+              const cfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo;
+              const Icon = cfg.icon;
+              return (
+                <div key={task.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/30 transition-colors">
+                  <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: cfg.color }} />
+                  <span className="text-[12px] text-[#0f172a] flex-1 truncate">{task.title}</span>
+                  {task.due_date && (
+                    <span className="text-[10px] text-[#94a3b8] flex-shrink-0">
+                      {formatDate(task.due_date, { month: "short", day: "numeric" })}
+                    </span>
+                  )}
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ color: cfg.color, background: cfg.bg }}>
+                    {cfg.label}
+                  </span>
+                </div>
+              );
+            })}
+            {ms.tasks.length === 0 && (
+              <p className="text-[11px] text-[#94a3b8] px-2">No checkpoints yet.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProjectCard({
   project,
   expanded,
@@ -48,7 +155,81 @@ function ProjectCard({
   const lateTasks = allTasks.filter((t) => t.status === "late").length;
   const progress = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
 
+  const [milestones, setMilestones] = useState(project.milestones);
+  const [collapsedMsIds, setCollapsedMsIds] = useState<Set<string>>(new Set());
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [reorderError, setReorderError] = useState("");
+
   const isList = viewMode === "list";
+
+  function toggleMs(id: string) {
+    setCollapsedMsIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
+    setDraggingId(id);
+    e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = "move";
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (id !== draggingId) {
+      setDragOverId(id);
+    }
+  }, [draggingId]);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+      setDragOverId(null);
+      const sourceId = e.dataTransfer.getData("text/plain");
+      if (!sourceId || sourceId === targetId) {
+        setDraggingId(null);
+        return;
+      }
+
+      const sourceIndex = milestones.findIndex((m) => m.id === sourceId);
+      const targetIndex = milestones.findIndex((m) => m.id === targetId);
+      if (sourceIndex === -1 || targetIndex === -1) {
+        setDraggingId(null);
+        return;
+      }
+
+      // Reorder locally
+      const newMilestones = [...milestones];
+      const [removed] = newMilestones.splice(sourceIndex, 1);
+      newMilestones.splice(targetIndex, 0, removed);
+      setMilestones(newMilestones);
+      setDraggingId(null);
+
+      // Persist to server
+      const result = await updateMilestoneOrderAction(
+        project.id,
+        newMilestones.map((m) => m.id)
+      );
+      if (!result.success) {
+        setReorderError(result.error);
+        // Revert on error
+        setMilestones(project.milestones);
+      } else {
+        setReorderError("");
+      }
+    },
+    [milestones, project.id, project.milestones]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingId(null);
+    setDragOverId(null);
+  }, []);
 
   return (
     <div
@@ -70,7 +251,17 @@ function ProjectCard({
           </div>
           <div className="text-[12.5px] font-semibold text-[#475569] truncate">{project.name}</div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <SingleProjectReportButton
+            project={{
+              id: project.id,
+              name: project.name,
+              target_date: project.target_date,
+              client: project.client,
+              milestones: milestones,
+            }}
+            variant="icon"
+          />
           <button
             onClick={onToggle}
             className="w-8 h-8 rounded-lg hover:bg-white/50 flex items-center justify-center transition-colors"
@@ -127,70 +318,43 @@ function ProjectCard({
             {lateTasks} late
           </span>
         )}
-        {project.milestones.length > 0 && (
+        {milestones.length > 0 && (
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100/80 text-[#94a3b8]">
-            {project.milestones.length} task{project.milestones.length !== 1 ? "s" : ""}
+            {milestones.length} task{milestones.length !== 1 ? "s" : ""}
           </span>
         )}
       </div>
 
       {/* Expanded inline tasks/checkpoints */}
       {expanded && (
-        <div className="mt-3 pt-3 border-t border-white/50 space-y-3">
-          {project.milestones.map((ms) => {
-            const msTotal = ms.tasks.length;
-            const msDone = ms.tasks.filter((t) => t.status === "done").length;
-            const msProgress = msTotal > 0 ? Math.round((msDone / msTotal) * 100) : 0;
-            return (
-              <div key={ms.id} className="glass rounded-xl p-3 border border-white/40">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: ms.color }} />
-                    <span className="text-[12.5px] font-semibold text-[#0f172a]">{ms.title}</span>
-                  </div>
-                  <span className="text-[11px] font-bold text-[#475569]">{msProgress}%</span>
-                </div>
-                <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-1.5 mb-2">
-                  <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${msProgress}%`, background: ms.color }} />
-                </div>
-                {ms.deadline && (
-                  <div className="text-[11px] text-[#94a3b8] mb-2">
-                    Due {formatDate(ms.deadline, { month: "short", day: "numeric", year: "numeric" })}
-                  </div>
-                )}
-                {/* Checkpoints */}
-                <div className="flex flex-col gap-1.5">
-                  {ms.tasks.map((task) => {
-                    const cfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo;
-                    const Icon = cfg.icon;
-                    return (
-                      <div key={task.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/30 transition-colors">
-                        <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: cfg.color }} />
-                        <span className="text-[12px] text-[#0f172a] flex-1 truncate">{task.title}</span>
-                        {task.due_date && (
-                          <span className="text-[10px] text-[#94a3b8] flex-shrink-0">
-                            {formatDate(task.due_date, { month: "short", day: "numeric" })}
-                          </span>
-                        )}
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ color: cfg.color, background: cfg.bg }}>
-                          {cfg.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {ms.tasks.length === 0 && (
-                    <p className="text-[11px] text-[#94a3b8] px-2">No checkpoints yet.</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {project.milestones.length === 0 && (
+        <div className="mt-3 pt-3 border-t border-white/50 space-y-2">
+          {reorderError && (
+            <div className="text-[11px] text-red-500 bg-red-50/80 rounded-lg px-3 py-1.5 border border-red-100">
+              {reorderError}
+            </div>
+          )}
+          <div className="text-[11px] text-[#94a3b8] flex items-center gap-1 mb-1">
+            <GripVertical className="w-3 h-3" /> Drag to reorder tasks
+          </div>
+          {milestones.map((ms) => (
+            <MilestoneCard
+              key={ms.id}
+              ms={ms}
+              expanded={!collapsedMsIds.has(ms.id)}
+              onToggle={() => toggleMs(ms.id)}
+              draggable={true}
+              onDragStart={(e) => handleDragStart(e, ms.id)}
+              onDragOver={(e) => handleDragOver(e, ms.id)}
+              onDrop={(e) => handleDrop(e, ms.id)}
+              dragOverId={dragOverId}
+            />
+          ))}
+          {milestones.length === 0 && (
             <p className="text-[13px] text-[#94a3b8] text-center py-4">No tasks set up yet.</p>
           )}
 
           <Link href={`/projects/${project.id}`}>
-            <Button variant="primary" size="sm" className="w-full">
+            <Button variant="primary" size="sm" className="w-full mt-2">
               <FolderKanban className="w-3.5 h-3.5" /> Open Full Project
             </Button>
           </Link>

@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Topbar } from "@/components/layout/Topbar";
 import { AddProjectButton } from "@/components/projects/AddProjectButton";
-import { ProjectReportButton } from "@/components/projects/ProjectReportButton";
+
 import { ProjectsView } from "@/components/projects/ProjectsView";
 
 export default async function ProjectsPage() {
@@ -50,7 +50,6 @@ export default async function ProjectsPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
-            <ProjectReportButton projects={projectsRaw ?? []} />
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <AddProjectButton
               clients={(clients ?? []).map((c: any) => ({ id: c.id, name: c.name }))}

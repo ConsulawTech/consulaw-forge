@@ -60,6 +60,34 @@ export async function createTaskAction(formData: FormData) {
   return { success: true };
 }
 
+export async function updateMilestoneOrderAction(
+  projectId: string,
+  milestoneIds: string[]
+): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+
+  // Update each milestone's order_index based on its position in the array
+  const updates = milestoneIds.map((id, index) =>
+    db.from("milestones").update({ order_index: index }).eq("id", id)
+  );
+
+  const results = await Promise.all(updates);
+  const errors = results.filter((r: any) => r.error);
+
+  if (errors.length > 0) {
+    return { success: false, error: errors[0].error.message };
+  }
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/timeline");
+  revalidatePath("/dashboard");
+
+  return { success: true };
+}
+
 export async function createMilestoneAction(formData: FormData) {
   const supabase = await createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
