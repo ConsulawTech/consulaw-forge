@@ -1,7 +1,10 @@
 -- Fix internal_messages schema and policies
 
--- Create helper function for role checks (if not exists)
-create or replace function public.current_role_is(role_name text)
+-- Drop existing function first (parameter name may differ)
+drop function if exists public.current_role_is(text);
+
+-- Create helper function for role checks
+create function public.current_role_is(role_name text)
 returns boolean as $$
 begin
   return exists (
