@@ -40,10 +40,25 @@ export function InternalMessages({
 }: InternalMessagesProps) {
   const supabase = createClient();
 
-  // Shared state
-  const [activeTab, setActiveTab] = useState<ChatTab>("client");
-  const [projectId, setProjectId] = useState(initialProjectId);
-  const [recipientId, setRecipientId] = useState<string>("");
+  // Shared state — restore from localStorage on mount
+  const [activeTab, setActiveTab] = useState<ChatTab>(() => {
+    try {
+      const saved = localStorage.getItem("forge:messages:activeTab") as ChatTab | null;
+      return saved && ["client", "team", "dm"].includes(saved) ? saved : "client";
+    } catch { return "client"; }
+  });
+  const [projectId, setProjectId] = useState(() => {
+    try {
+      const saved = localStorage.getItem("forge:messages:projectId");
+      return saved && projects.some((p) => p.id === saved) ? saved : initialProjectId;
+    } catch { return initialProjectId; }
+  });
+  const [recipientId, setRecipientId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem("forge:messages:recipientId");
+      return saved && teamMembers.some((m) => m.id === saved) ? saved : "";
+    } catch { return ""; }
+  });
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -56,6 +71,19 @@ export function InternalMessages({
 
   const selectedProject = projects.find((p) => p.id === projectId);
   const selectedMember = teamMembers.find((m) => m.id === recipientId);
+
+  // Persist tab / project / recipient to localStorage
+  useEffect(() => {
+    localStorage.setItem("forge:messages:activeTab", activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem("forge:messages:projectId", projectId);
+  }, [projectId]);
+
+  useEffect(() => {
+    localStorage.setItem("forge:messages:recipientId", recipientId);
+  }, [recipientId]);
 
   // ── Realtime subscriptions ─────────────────────────────────────────────
 
