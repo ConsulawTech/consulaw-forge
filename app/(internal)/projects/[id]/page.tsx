@@ -3,19 +3,20 @@ import { Topbar } from "@/components/layout/Topbar";
 import { formatDate, deadlineStatus } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Sparkles, Plus, Trash2, FolderKanban } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { AddMilestoneButton } from "@/components/projects/AddMilestoneButton";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { GenerateTasksButton } from "@/components/projects/GenerateTasksButton";
 import { CollapsibleMilestoneList } from "@/components/projects/CollapsibleMilestoneList";
+import { ProjectDocuments } from "@/components/documents/ProjectDocuments";
 import { deleteProjectAction } from "@/app/actions/projects";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: projectRaw }, { data: profiles }] = await Promise.all([
+  const [{ data: projectRaw }, { data: profiles }, { data: documentsRaw }] = await Promise.all([
     supabase
       .from("projects")
       .select("*, client:clients(*), milestones(*, tasks(*, assignee:profiles(*)))")
@@ -23,6 +24,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       .order("order_index", { referencedTable: "milestones", ascending: true })
       .single(),
     supabase.from("profiles").select("id, full_name, job_title").eq("role", "team"),
+    supabase.from("documents").select("*").eq("project_id", id).order("created_at", { ascending: false }),
   ]);
 
   if (!projectRaw) notFound();
@@ -38,8 +40,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const overallProgress = allCheckpoints.length > 0 ? Math.round((doneCheckpoints / allCheckpoints.length) * 100) : 0;
 
   const projectForModal = [{ id: project.id, name: project.name }];
-  const profilesForModal = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name }));
-  const teamProfilesForAi = (profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }));
+  const profilesForModal = (profiles ?? []).map((p: { id: string; full_name: string }) => ({ id: p.id, full_name: p.full_name }));
+  const teamProfilesForAi = (profiles ?? []).map((p: { id: string; full_name: string; job_title: string }) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }));
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-50/50">
@@ -109,6 +111,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <span className="w-1 h-1 rounded-full bg-slate-300" />
             <span>{allCheckpoints.length - doneCheckpoints} remaining</span>
           </div>
+        </div>
+
+        {/* Documents */}
+        <div className="mb-6">
+          <ProjectDocuments projectId={project.id} initialDocuments={documentsRaw ?? []} />
         </div>
 
         {/* Tasks */}

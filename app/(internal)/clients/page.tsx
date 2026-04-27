@@ -1,18 +1,30 @@
 import { createClient } from "@/lib/supabase/server";
 import { Topbar } from "@/components/layout/Topbar";
-import { formatDate } from "@/lib/utils";
-import { Avatar } from "@/components/ui/Avatar";
-import Link from "next/link";
-import { ExternalLink } from "lucide-react";
 import { AddClientButton } from "@/components/clients/AddClientButton";
-import { DeleteClientButton } from "@/components/clients/DeleteClientButton";
+import { ClientsView } from "@/components/clients/ClientsView";
 
 export default async function ClientsPage() {
   const supabase = await createClient();
-  const { data: clients } = await supabase
+  const { data: clientsRaw } = await supabase
     .from("clients")
-    .select("*, projects(*, milestones(*))")
+    .select("*, projects(id, name, overall_progress, target_date)")
     .order("created_at");
+
+  const clients = (clientsRaw ?? []).map((c: Record<string, unknown>) => ({
+    id: c.id as string,
+    name: c.name as string,
+    email: c.email as string | null,
+    logo_color: c.logo_color as string | null,
+    logo_letter: c.logo_letter as string | null,
+    created_at: c.created_at as string,
+    updated_at: c.updated_at as string | null,
+    projects: ((c.projects ?? []) as Record<string, unknown>[]).map((p) => ({
+      id: p.id as string,
+      name: p.name as string,
+      overall_progress: p.overall_progress as number | null,
+      target_date: p.target_date as string | null,
+    })),
+  }));
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -26,77 +38,7 @@ export default async function ClientsPage() {
           <AddClientButton />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(clients ?? []).map((client: any) => {
-            const projects: any[] = client.projects ?? [];
-            const progress = projects.length > 0
-              ? Math.round(projects.reduce((s: number, p: any) => s + (p.overall_progress ?? 0), 0) / projects.length)
-              : 0;
-            const nextDeadline = projects
-              .map((p: any) => p.target_date)
-              .filter(Boolean)
-              .sort()[0] ?? null;
-            return (
-              <div key={client.id} className="relative group">
-                <Link href={`/clients/${client.id}`}>
-                  <div className="glass rounded-2xl p-5 cursor-pointer hover:-translate-y-0.5 transition-all duration-150">
-                    <div className="flex items-start gap-3.5 mb-4">
-                      <div
-                        className="w-12 h-12 rounded-[14px] flex items-center justify-center text-xl font-black text-white flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
-                        style={{ background: client.logo_color ?? "#e50914" }}
-                      >
-                        {client.logo_letter ?? client.name[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[15px] font-bold text-[#0f172a]">{client.name}</div>
-                        <div className="text-[12px] text-[#1B3FEE] font-medium mt-0.5 truncate">
-                          {projects.length > 0
-                            ? `${projects.length} project${projects.length !== 1 ? "s" : ""}`
-                            : "No active projects"}
-                        </div>
-                        {client.email && (
-                          <div className="text-[11px] text-[#94a3b8] truncate">{client.email}</div>
-                        )}
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-[#94a3b8] flex-shrink-0 mt-0.5" />
-                    </div>
-
-                    <div className="mb-3">
-                      <div className="flex justify-between text-[11px] font-semibold text-[#475569] mb-1.5">
-                        <span>Overall Progress</span>
-                        <span>{progress}%</span>
-                      </div>
-                      <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-1.5">
-                        <div
-                          className="h-1.5 rounded-full bg-[#1B3FEE] transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-[#94a3b8]">
-                      <span>{projects.length} project{projects.length !== 1 ? "s" : ""}</span>
-                      {nextDeadline && (
-                        <span>Next due {formatDate(nextDeadline, { month: "short", year: "numeric" })}</span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-                {/* Delete button — visible on hover */}
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <DeleteClientButton clientId={client.id} clientName={client.name} variant="icon" />
-                </div>
-              </div>
-            );
-          })}
-
-          {(!clients || clients.length === 0) && (
-            <div className="col-span-3 glass rounded-2xl p-12 text-center text-[#94a3b8] text-sm">
-              No clients yet. Click &quot;Add Client&quot; to get started.
-            </div>
-          )}
-        </div>
+        <ClientsView clients={clients} />
       </div>
     </div>
   );

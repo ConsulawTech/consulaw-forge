@@ -165,7 +165,7 @@ function buildTimelineData(project: any, allProjectTasks: any[]): TimelineData {
     if (t.status === "done" && t.due_date) activities.push({
       day: Math.max(0, Math.round((new Date(t.due_date as string).getTime() - startDate.getTime()) / 86400000)),
       text: `"${t.title}" completed`,
-      who: (t.assignee?.full_name as string) ?? "Team",
+      who: "Team",
       color: "#10b981",
     });
   });
@@ -411,9 +411,8 @@ export function PortalTimelineReplay({ projects }: { projects: ProjectOption[] }
                               </span>
                             </div>
                           )}
-                          <div className="flex justify-between items-center pl-3">
-                            <span className="text-[10px] text-[#475569] truncate flex-1">{task.assignee}</span>
-                            <span className="text-[10px] text-[#94a3b8] flex-shrink-0 ml-1">Day {startD}–{endD}</span>
+                          <div className="flex justify-end items-center pl-3">
+                            <span className="text-[10px] text-[#94a3b8] flex-shrink-0">Day {startD}–{endD}</span>
                           </div>
                         </div>
                       );
