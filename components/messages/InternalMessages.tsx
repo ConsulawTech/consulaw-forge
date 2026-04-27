@@ -40,29 +40,16 @@ export function InternalMessages({
 }: InternalMessagesProps) {
   const supabase = createClient();
 
-  // Shared state — restore from localStorage on mount
-  const [activeTab, setActiveTab] = useState<ChatTab>(() => {
-    try {
-      const saved = localStorage.getItem("forge:messages:activeTab") as ChatTab | null;
-      return saved && ["client", "team", "dm"].includes(saved) ? saved : "client";
-    } catch { return "client"; }
-  });
-  const [projectId, setProjectId] = useState(() => {
-    try {
-      const saved = localStorage.getItem("forge:messages:projectId");
-      return saved && projects.some((p) => p.id === saved) ? saved : initialProjectId;
-    } catch { return initialProjectId; }
-  });
-  const [recipientId, setRecipientId] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem("forge:messages:recipientId");
-      return saved && teamMembers.some((m) => m.id === saved) ? saved : "";
-    } catch { return ""; }
-  });
+  // Shared state — safe SSR defaults, restored from localStorage after mount
+  const [activeTab, setActiveTab] = useState<ChatTab>("client");
+  const [projectId, setProjectId] = useState(initialProjectId);
+  const [recipientId, setRecipientId] = useState<string>("");
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
+  const [isReady, setIsReady] = useState(false);
   const msgsRef = useRef<HTMLDivElement>(null);
+  const pendingIdsRef = useRef<Set<string>>(new Set());
 
   // Messages state per tab
   const [clientMessages, setClientMessages] = useState<Message[]>(initialMessages);
@@ -71,6 +58,29 @@ export function InternalMessages({
 
   const selectedProject = projects.find((p) => p.id === projectId);
   const selectedMember = teamMembers.find((m) => m.id === recipientId);
+
+  // Restore from localStorage after mount (avoids hydration mismatch flash)
+  useEffect(() => {
+    try {
+      const savedTab = localStorage.getItem("forge:messages:activeTab") as ChatTab | null;
+      const savedProjectId = localStorage.getItem("forge:messages:projectId");
+      const savedRecipientId = localStorage.getItem("forge:messages:recipientId");
+
+      if (savedTab && ["client", "team", "dm"].includes(savedTab)) {
+        setActiveTab(savedTab);
+      }
+      if (savedProjectId && projects.some((p) => p.id === savedProjectId)) {
+        setProjectId(savedProjectId);
+      }
+      if (savedRecipientId && teamMembers.some((m) => m.id === savedRecipientId)) {
+        setRecipientId(savedRecipientId);
+      }
+    } catch {
+      // ignore
+    }
+    setIsReady(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist tab / project / recipient to localStorage
   useEffect(() => {
@@ -94,7 +104,19 @@ export function InternalMessages({
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "messages", filter: `project_id=eq.${projectId}` },
-          (payload) => setClientMessages((prev) => [...prev, payload.new as Message])
+          (payload) => {
+            const msg = payload.new as Message;
+            setClientMessages((prev) => {
+              for (const tempId of pendingIdsRef.current) {
+                const opt = prev.find((m) => m.id === tempId);
+                if (opt && opt.sender_id === msg.sender_id && opt.content === msg.content) {
+                  pendingIdsRef.current.delete(tempId);
+                  return prev.map((m) => (m.id === tempId ? msg : m));
+                }
+              }
+              return [...prev, msg];
+            });
+          }
         )
         .subscribe();
       return () => { supabase.removeChannel(channel); };
@@ -113,7 +135,17 @@ export function InternalMessages({
             const msg = payload.new as InternalMessage;
             // Only append team messages (recipient_id is null)
             if (msg.recipient_id === null) {
-              setTeamMessages((prev) => [...prev, msg]);
+              setTeamMessages((prev) => {
+                // Replace optimistic message if present
+                for (const tempId of pendingIdsRef.current) {
+                  const opt = prev.find((m) => m.id === tempId);
+                  if (opt && opt.sender_id === msg.sender_id && opt.content === msg.content) {
+                    pendingIdsRef.current.delete(tempId);
+                    return prev.map((m) => (m.id === tempId ? msg : m));
+                  }
+                }
+                return [...prev, msg];
+              });
             }
           }
         )
@@ -138,7 +170,17 @@ export function InternalMessages({
               ((msg.sender_id === senderId && msg.recipient_id === recipientId) ||
                 (msg.sender_id === recipientId && msg.recipient_id === senderId))
             ) {
-              setDmMessages((prev) => [...prev, msg]);
+              setDmMessages((prev) => {
+                // Replace optimistic message if present
+                for (const tempId of pendingIdsRef.current) {
+                  const opt = prev.find((m) => m.id === tempId);
+                  if (opt && opt.sender_id === msg.sender_id && opt.content === msg.content) {
+                    pendingIdsRef.current.delete(tempId);
+                    return prev.map((m) => (m.id === tempId ? msg : m));
+                  }
+                }
+                return [...prev, msg];
+              });
             }
           }
         )
@@ -219,9 +261,24 @@ export function InternalMessages({
 
     setSending(true);
     setSendError("");
+    setInput("");
+
+    const tempId = `opt-${Date.now()}`;
 
     try {
       if (activeTab === "client" && projectId) {
+        const optimistic: Message = {
+          id: tempId,
+          project_id: projectId,
+          sender_id: senderId,
+          sender_name: senderName,
+          sender_role: "team",
+          content: text,
+          created_at: new Date().toISOString(),
+        };
+        pendingIdsRef.current.add(tempId);
+        setClientMessages((prev) => [...prev, optimistic]);
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase.from("messages") as any).insert({
           project_id: projectId,
@@ -232,6 +289,18 @@ export function InternalMessages({
         });
         if (error) throw new Error(error.message);
       } else if (activeTab === "team" && projectId) {
+        const optimistic: InternalMessage = {
+          id: tempId,
+          project_id: projectId,
+          sender_id: senderId,
+          sender_name: senderName,
+          recipient_id: null,
+          content: text,
+          created_at: new Date().toISOString(),
+        };
+        pendingIdsRef.current.add(tempId);
+        setTeamMessages((prev) => [...prev, optimistic]);
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase.from("internal_messages") as any).insert({
           project_id: projectId,
@@ -242,6 +311,18 @@ export function InternalMessages({
         });
         if (error) throw new Error(error.message);
       } else if (activeTab === "dm" && recipientId) {
+        const optimistic: InternalMessage = {
+          id: tempId,
+          project_id: null,
+          sender_id: senderId,
+          sender_name: senderName,
+          recipient_id: recipientId,
+          content: text,
+          created_at: new Date().toISOString(),
+        };
+        pendingIdsRef.current.add(tempId);
+        setDmMessages((prev) => [...prev, optimistic]);
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase.from("internal_messages") as any).insert({
           project_id: null,
@@ -252,9 +333,17 @@ export function InternalMessages({
         });
         if (error) throw new Error(error.message);
       }
-      setInput("");
     } catch (err) {
       setSendError((err as Error).message);
+      // Rollback optimistic
+      if (activeTab === "client") {
+        setClientMessages((prev) => prev.filter((m) => m.id !== tempId));
+      } else if (activeTab === "team") {
+        setTeamMessages((prev) => prev.filter((m) => m.id !== tempId));
+      } else {
+        setDmMessages((prev) => prev.filter((m) => m.id !== tempId));
+      }
+      pendingIdsRef.current.delete(tempId);
     } finally {
       setSending(false);
     }
@@ -286,6 +375,11 @@ export function InternalMessages({
     activeTab === "client" ? "Messages are visible to the client in real time via their portal" :
     activeTab === "team" ? "In-house team chat — not visible to clients" :
     "Direct message — private between you and this team member";
+
+  // Prevent hydration mismatch flash — render nothing until localStorage is restored
+  if (!isReady) {
+    return <div className="h-full w-full bg-[#f8fafc]" />;
+  }
 
   return (
     <div className="h-full flex flex-col md:flex-row overflow-hidden">
