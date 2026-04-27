@@ -11,6 +11,8 @@ import {
   Clock,
   FolderKanban,
   GripVertical,
+  FileText,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DeleteButton } from "@/components/ui/DeleteButton";
@@ -46,97 +48,124 @@ function MilestoneItem({
   ms,
   expanded,
   onToggle,
+  dragOverId,
   onDragStart,
   onDragOver,
   onDrop,
   onDragEnd,
-  dragOverId,
 }: {
   ms: Milestone;
   expanded: boolean;
   onToggle: () => void;
+  dragOverId: string | null;
   onDragStart: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onDragEnd: (e: React.DragEvent) => void;
-  dragOverId: string | null;
 }) {
   const msTotal = ms.tasks.length;
   const msDone = ms.tasks.filter((t) => t.status === "done").length;
   const msProgress = msTotal > 0 ? Math.round((msDone / msTotal) * 100) : 0;
+  const isDragOver = dragOverId === ms.id;
 
   return (
     <div
-      className={`glass rounded-xl border transition-all ${
-        dragOverId === ms.id ? "border-[#1B3FEE]/40 shadow-[0_0_0_2px_rgba(27,63,238,0.1)]" : "border-white/40"
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className={`relative rounded-xl border transition-all duration-200 ${
+        isDragOver
+          ? "border-[#1B3FEE]/50 shadow-[0_0_0_3px_rgba(27,63,238,0.08)] bg-[rgba(27,63,238,0.03)]"
+          : "border-slate-200/60 bg-white/50 hover:bg-white/70"
       }`}
     >
-      {/* Milestone header */}
-      <div className="flex items-center justify-between px-3 py-2.5 rounded-xl">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          {/* Drag handle */}
-          <div
-            draggable
-            onDragStart={onDragStart}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            onDragEnd={onDragEnd}
-            className="cursor-grab active:cursor-grabbing p-0.5 -ml-0.5 rounded hover:bg-white/40"
-            title="Drag to reorder"
-          >
-            <GripVertical className="w-3.5 h-3.5 text-[#94a3b8]" />
-          </div>
-          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ms.color }} />
-          <span className="text-[12.5px] font-semibold text-[#0f172a] truncate">{ms.title}</span>
+      {/* Color accent bar */}
+      <div
+        className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full"
+        style={{ background: ms.color }}
+      />
+
+      {/* Header row */}
+      <div className="flex items-center gap-3 pl-4 pr-3 py-3">
+        {/* Drag handle */}
+        <div
+          draggable
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          className="cursor-grab active:cursor-grabbing p-1 rounded-md hover:bg-slate-100/80 transition-colors flex-shrink-0"
+          title="Drag to reorder"
+        >
+          <GripVertical className="w-4 h-4 text-slate-400" />
         </div>
+
+        {/* Title + meta */}
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-semibold text-slate-900 truncate">{ms.title}</div>
+          {ms.deadline && (
+            <div className="text-[11px] text-slate-500 mt-0.5">
+              Due {formatDate(ms.deadline, { month: "short", day: "numeric" })}
+            </div>
+          )}
+        </div>
+
+        {/* Progress */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[11px] font-bold text-[#475569]">{msProgress}%</span>
+          <div className="hidden sm:flex items-center gap-1.5 w-[80px]">
+            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${msProgress}%`, background: ms.color }}
+              />
+            </div>
+            <span className="text-[10px] font-bold text-slate-500 w-6 text-right">{msProgress}%</span>
+          </div>
+
           <button
-            onClick={onToggle}
-            className="w-6 h-6 rounded-md hover:bg-white/40 flex items-center justify-center transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
             title={expanded ? "Collapse" : "Expand"}
           >
             {expanded ? (
-              <ChevronDown className="w-3.5 h-3.5 text-[#94a3b8]" />
+              <ChevronDown className="w-4 h-4 text-slate-400" />
             ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-[#94a3b8]" />
+              <ChevronRight className="w-4 h-4 text-slate-400" />
             )}
           </button>
         </div>
       </div>
 
-      {/* Expanded checkpoint list */}
+      {/* Expanded checkpoints */}
       {expanded && (
-        <div className="px-3 pb-3 pt-1 border-t border-white/30">
-          <div className="bg-[rgba(241,245,249,0.9)] rounded-full h-1.5 mb-2">
-            <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${msProgress}%`, background: ms.color }} />
-          </div>
-          {ms.deadline && (
-            <div className="text-[11px] text-[#94a3b8] mb-2">
-              Due {formatDate(ms.deadline, { month: "short", day: "numeric", year: "numeric" })}
-            </div>
-          )}
-          <div className="flex flex-col gap-1">
+        <div className="px-4 pb-3 pt-1 border-t border-slate-100/60">
+          <div className="flex flex-col gap-0.5">
             {ms.tasks.map((task) => {
               const cfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo;
               const Icon = cfg.icon;
               return (
-                <div key={task.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/30 transition-colors">
+                <div
+                  key={task.id}
+                  className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/60 transition-colors"
+                >
                   <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: cfg.color }} />
-                  <span className="text-[12px] text-[#0f172a] flex-1 truncate">{task.title}</span>
+                  <span className="text-[12.5px] text-slate-800 flex-1 truncate">{task.title}</span>
                   {task.due_date && (
-                    <span className="text-[10px] text-[#94a3b8] flex-shrink-0">
+                    <span className="text-[11px] text-slate-400 flex-shrink-0">
                       {formatDate(task.due_date, { month: "short", day: "numeric" })}
                     </span>
                   )}
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ color: cfg.color, background: cfg.bg }}>
+                  <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{ color: cfg.color, background: cfg.bg }}
+                  >
                     {cfg.label}
                   </span>
                 </div>
               );
             })}
             {ms.tasks.length === 0 && (
-              <p className="text-[11px] text-[#94a3b8] px-2">No checkpoints yet.</p>
+              <p className="text-[12px] text-slate-400 px-2 py-1">No checkpoints yet.</p>
             )}
           </div>
         </div>
@@ -154,10 +183,10 @@ function ProjectCardInner({ project, viewMode }: { project: Project; viewMode: "
   const progress = allTasks.length > 0 ? Math.round((doneTasks / allTasks.length) * 100) : 0;
 
   const [expanded, setExpanded] = useState(false);
-  const [milestones] = useState(project.milestones);
   const [collapsedMsIds, setCollapsedMsIds] = useState<Set<string>>(new Set());
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [reorderError, setReorderError] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const isList = viewMode === "list";
 
@@ -171,36 +200,52 @@ function ProjectCardInner({ project, viewMode }: { project: Project; viewMode: "
   }
 
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
+    setDraggingId(id);
     e.dataTransfer.setData("text/plain", id);
     e.dataTransfer.effectAllowed = "move";
+    // Add drag image opacity via class on the handle
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = "0.5";
+  }, []);
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    setDraggingId(null);
+    setDragOverId(null);
+    const target = e.currentTarget as HTMLElement;
+    target.style.opacity = "1";
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    setDragOverId(id);
-  }, []);
+    if (id !== draggingId) {
+      setDragOverId(id);
+    }
+  }, [draggingId]);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent, targetId: string) => {
       e.preventDefault();
+      e.stopPropagation();
       setDragOverId(null);
+      setDraggingId(null);
+
       const sourceId = e.dataTransfer.getData("text/plain");
       if (!sourceId || sourceId === targetId) return;
 
+      const milestones = project.milestones;
       const sourceIndex = milestones.findIndex((m) => m.id === sourceId);
       const targetIndex = milestones.findIndex((m) => m.id === targetId);
       if (sourceIndex === -1 || targetIndex === -1) return;
 
-      // Reorder locally
-      const newMilestones = [...milestones];
-      const [removed] = newMilestones.splice(sourceIndex, 1);
-      newMilestones.splice(targetIndex, 0, removed);
+      // Persist to server (visual reorder happens on next data fetch)
+      const newOrder = [...milestones];
+      const [removed] = newOrder.splice(sourceIndex, 1);
+      newOrder.splice(targetIndex, 0, removed);
 
-      // Persist to server
       const result = await updateMilestoneOrderAction(
         project.id,
-        newMilestones.map((m) => m.id)
+        newOrder.map((m) => m.id)
       );
       if (!result.success) {
         setReorderError(result.error);
@@ -208,53 +253,49 @@ function ProjectCardInner({ project, viewMode }: { project: Project; viewMode: "
         setReorderError("");
       }
     },
-    [milestones, project.id]
+    [project.id, project.milestones]
   );
-
-  const handleDragEnd = useCallback(() => {
-    setDragOverId(null);
-  }, []);
 
   return (
     <div
-      className={`glass rounded-2xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.1)] transition-all overflow-hidden ${
-        isList ? "p-4" : "p-5 flex flex-col"
+      className={`rounded-2xl border border-slate-200/50 bg-white/60 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ${
+        isList ? "p-5" : "p-5 flex flex-col"
       }`}
     >
       {/* Header */}
-      <div className={`flex items-start gap-3 ${isList ? "" : "mb-3"}`}>
+      <div className="flex items-start gap-3.5">
         <div
-          className="w-10 h-10 rounded-[12px] flex items-center justify-center text-lg font-black text-white flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
+          className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-black text-white flex-shrink-0 shadow-sm"
           style={{ background: project.client?.logo_color ?? "#e50914" }}
         >
           {project.client?.logo_letter ?? project.client?.name?.[0]}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-bold text-[#0f172a] truncate leading-tight">
+          <div className="text-[15px] font-bold text-slate-900 truncate leading-tight">
             {project.client?.name}
           </div>
-          <div className="text-[12.5px] font-semibold text-[#475569] truncate">{project.name}</div>
+          <div className="text-[13px] font-medium text-slate-500 truncate">{project.name}</div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           <SingleProjectReportButton
             project={{
               id: project.id,
               name: project.name,
               target_date: project.target_date,
               client: project.client,
-              milestones: milestones,
+              milestones: project.milestones,
             }}
             variant="icon"
           />
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="w-8 h-8 rounded-lg hover:bg-white/50 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg hover:bg-slate-100/80 flex items-center justify-center transition-colors"
             title={expanded ? "Collapse" : "Expand"}
           >
             {expanded ? (
-              <ChevronDown className="w-4 h-4 text-[#475569]" />
+              <ChevronDown className="w-4 h-4 text-slate-500" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-[#475569]" />
+              <ChevronRight className="w-4 h-4 text-slate-500" />
             )}
           </button>
           <DeleteButton
@@ -267,12 +308,12 @@ function ProjectCardInner({ project, viewMode }: { project: Project; viewMode: "
       </div>
 
       {/* Progress */}
-      <div className={`${isList ? "mt-3" : "mb-3 mt-3"}`}>
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-semibold text-[#475569]">{progress}% complete</span>
+      <div className="mt-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[12px] font-semibold text-slate-600">{progress}% complete</span>
           <span
-            className={`text-[11px] font-medium ${
-              dlStatus === "late" ? "text-[#ef4444]" : dlStatus === "warn" ? "text-[#f59f00]" : "text-[#94a3b8]"
+            className={`text-[12px] font-medium ${
+              dlStatus === "late" ? "text-red-500" : dlStatus === "warn" ? "text-amber-500" : "text-slate-400"
             }`}
           >
             {project.target_date
@@ -280,63 +321,70 @@ function ProjectCardInner({ project, viewMode }: { project: Project; viewMode: "
               : "No deadline"}
           </span>
         </div>
-        <div className="h-1.5 bg-[rgba(241,245,249,0.8)] rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progress}%`, background: "#1B3FEE" }} />
+        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${progress}%`, background: "#1B3FEE" }}
+          />
         </div>
       </div>
 
       {/* Task pills */}
-      <div className="flex flex-wrap gap-1.5 mb-2">
+      <div className="flex flex-wrap gap-2 mt-3">
         {doneTasks > 0 && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.1)] text-[#10b981]">
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
             {doneTasks} done
           </span>
         )}
         {inProgressTasks > 0 && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(27,63,238,0.08)] text-[#1B3FEE]">
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
             {inProgressTasks} active
           </span>
         )}
         {lateTasks > 0 && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.1)] text-[#ef4444]">
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-100">
             {lateTasks} late
           </span>
         )}
-        {milestones.length > 0 && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100/80 text-[#94a3b8]">
-            {milestones.length} task{milestones.length !== 1 ? "s" : ""}
+        {project.milestones.length > 0 && (
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-50 text-slate-500 border border-slate-100">
+            {project.milestones.length} task{project.milestones.length !== 1 ? "s" : ""}
           </span>
         )}
       </div>
 
-      {/* Expanded inline tasks/checkpoints */}
+      {/* Expanded milestones */}
       {expanded && (
-        <div className="mt-3 pt-3 border-t border-white/50 space-y-2">
+        <div className="mt-4 pt-4 border-t border-slate-100 space-y-2.5">
           {reorderError && (
-            <div className="text-[11px] text-red-500 bg-red-50/80 rounded-lg px-3 py-1.5 border border-red-100">
+            <div className="text-[11px] text-red-600 bg-red-50 rounded-lg px-3 py-2 border border-red-100">
               {reorderError}
             </div>
           )}
-          {milestones.length > 0 && (
-            <div className="text-[11px] text-[#94a3b8] flex items-center gap-1 mb-1">
-              <GripVertical className="w-3 h-3" /> Drag handle to reorder tasks
+
+          {project.milestones.length > 0 && (
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 px-1">
+              <GripVertical className="w-3 h-3" />
+              Drag the grip icon to reorder tasks
             </div>
           )}
-          {milestones.map((ms) => (
+
+          {project.milestones.map((ms) => (
             <MilestoneItem
               key={ms.id}
               ms={ms}
               expanded={!collapsedMsIds.has(ms.id)}
               onToggle={() => toggleMs(ms.id)}
+              dragOverId={dragOverId}
               onDragStart={(e) => handleDragStart(e, ms.id)}
               onDragOver={(e) => handleDragOver(e, ms.id)}
               onDrop={(e) => handleDrop(e, ms.id)}
               onDragEnd={handleDragEnd}
-              dragOverId={dragOverId}
             />
           ))}
-          {milestones.length === 0 && (
-            <p className="text-[13px] text-[#94a3b8] text-center py-4">No tasks set up yet.</p>
+
+          {project.milestones.length === 0 && (
+            <p className="text-[13px] text-slate-400 text-center py-6">No tasks set up yet.</p>
           )}
 
           <Link href={`/projects/${project.id}`}>
@@ -349,7 +397,7 @@ function ProjectCardInner({ project, viewMode }: { project: Project; viewMode: "
 
       {/* CTA when collapsed */}
       {!expanded && !isList && (
-        <Link href={`/projects/${project.id}`} className="mt-auto pt-3">
+        <Link href={`/projects/${project.id}`} className="mt-auto pt-4">
           <Button variant="primary" size="sm" className="w-full">
             View Project <ChevronRight className="w-3.5 h-3.5" />
           </Button>

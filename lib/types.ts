@@ -146,6 +146,11 @@ export type Database = {
         Insert: ProjectMember;
         Update: Partial<ProjectMember>;
       };
+      internal_messages: {
+        Row: InternalMessage;
+        Insert: Omit<InternalMessage, "id" | "created_at">;
+        Update: Partial<Omit<InternalMessage, "id" | "created_at">>;
+      };
     };
   };
 };

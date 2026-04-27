@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Topbar } from "@/components/layout/Topbar";
 import { AddProjectButton } from "@/components/projects/AddProjectButton";
-
 import { ProjectsView } from "@/components/projects/ProjectsView";
 
 export default async function ProjectsPage() {
@@ -39,23 +38,22 @@ export default async function ProjectsPage() {
   }));
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden bg-slate-50/50">
       <Topbar />
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 [scrollbar-width:thin]">
-        <div className="flex items-start sm:items-end justify-between mb-5 gap-3">
+      <div className="flex-1 overflow-y-auto p-5 md:p-8 [scrollbar-width:thin]">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-[20px] md:text-[22px] font-extrabold text-[#0f172a] tracking-tight">Projects</h1>
-            <p className="text-[13px] text-[#475569] mt-0.5">
+            <h1 className="text-[24px] font-extrabold text-slate-900 tracking-tight">Projects</h1>
+            <p className="text-[14px] text-slate-500 mt-1">
               {projects.length} project{projects.length !== 1 ? "s" : ""} across your workspace
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 justify-end">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            <AddProjectButton
-              clients={(clients ?? []).map((c: any) => ({ id: c.id, name: c.name }))}
-              teamProfiles={(profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }))}
-            />
-          </div>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <AddProjectButton
+            clients={(clients ?? []).map((c: any) => ({ id: c.id, name: c.name }))}
+            teamProfiles={(profiles ?? []).map((p: any) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }))}
+          />
         </div>
 
         <ProjectsView projects={projects} />
