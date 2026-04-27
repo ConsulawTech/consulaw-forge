@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, GitBranch, MessageSquare, LogOut, FileText } from "lucide-react";
+import { LayoutDashboard, GitBranch, MessageSquare, LogOut, FileText, Settings, FolderOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -8,9 +8,11 @@ import type { Profile } from "@/lib/types";
 import { Avatar } from "@/components/ui/Avatar";
 
 const NAV = [
-  { href: "/portal",           icon: LayoutDashboard, label: "Overview"  },
-  { href: "/portal/timeline",  icon: GitBranch,        label: "Timeline"  },
-  { href: "/portal/messages",  icon: MessageSquare,    label: "Messages"  },
+  { href: "/portal",           icon: LayoutDashboard, label: "Overview"   },
+  { href: "/portal/timeline",  icon: GitBranch,        label: "Timeline"   },
+  { href: "/portal/messages",  icon: MessageSquare,    label: "Messages"   },
+  { href: "/portal/documents", icon: FolderOpen,       label: "Documents"  },
+  { href: "/portal/settings",  icon: Settings,         label: "Settings"   },
 ];
 
 interface PortalSidebarProps {
