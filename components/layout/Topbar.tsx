@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Settings, Plus, Search, LogOut, X, CheckSquare, Users, Menu, LayoutDashboard, FolderKanban, Play, FileText, MessageSquare } from "lucide-react";
+import { Bell, Settings, Plus, Search, LogOut, X, CheckSquare, Users, Menu, LayoutDashboard, FolderKanban, Play, FileText, MessageSquare, Send } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -31,6 +31,7 @@ const MOBILE_NAV = [
   { href: "/tasks",     icon: CheckSquare,     label: "Tasks" },
   { href: "/messages",  icon: MessageSquare,   label: "Messages" },
   { href: "/clients",   icon: Users,           label: "Clients" },
+  { href: "/proposals", icon: Send,            label: "Proposals" },
   { href: "/timeline",  icon: Play,            label: "Timeline Replay" },
 ];
 

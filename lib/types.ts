@@ -95,6 +95,35 @@ export interface InternalMessage {
   created_at: string;
 }
 
+export type ProposalStatus = "draft" | "sent" | "viewed";
+
+export interface Proposal {
+  id: string;
+  title: string;
+  slug: string;
+  html: string;
+  client_id: string | null;
+  status: ProposalStatus;
+  view_count: number;
+  created_at: string;
+  sent_at: string | null;
+  viewed_at: string | null;
+  client?: Pick<Client, "id" | "name" | "logo_color" | "logo_letter"> & { email?: string | null };
+}
+
+export interface ProposalSubmission {
+  id: string;
+  proposal_id: string;
+  client_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  client_company: string | null;
+  message: string | null;
+  selected_template: string | null;
+  selected_features: string[] | null;
+  submitted_at: string;
+}
+
 export interface AiGeneratedTask {
   title: string;
   checkpoints: {
@@ -150,6 +179,16 @@ export type Database = {
         Row: InternalMessage;
         Insert: Omit<InternalMessage, "id" | "created_at">;
         Update: Partial<Omit<InternalMessage, "id" | "created_at">>;
+      };
+      proposals: {
+        Row: Proposal;
+        Insert: Omit<Proposal, "id" | "created_at" | "view_count" | "client"> & { view_count?: number };
+        Update: Partial<Omit<Proposal, "id" | "created_at" | "client">>;
+      };
+      proposal_submissions: {
+        Row: ProposalSubmission;
+        Insert: Omit<ProposalSubmission, "id" | "submitted_at">;
+        Update: Partial<Omit<ProposalSubmission, "id" | "submitted_at">>;
       };
     };
   };

@@ -9,6 +9,7 @@ import {
   Play,
   Users,
   MessageSquare,
+  Send,
   Plus,
   FileText,
   MoreHorizontal,
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/clients", label: "Client", icon: Users },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/messages", label: "Messages", icon: MessageSquare },
+  { href: "/proposals", label: "Proposals", icon: Send },
   { href: "/timeline", label: "Timeline Replay", icon: Play, badge: "New", badgeVariant: "blue" },
 ];
 
