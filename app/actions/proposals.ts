@@ -10,16 +10,6 @@ type SendResult =
   | { success: true; emailSent: false; emailError: string }
   | { success: false; error: string };
 
-export function slugify(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80);
-}
-
 export async function createProposalAction(formData: FormData): Promise<SimpleResult> {
   const title = (formData.get("title") as string | null)?.trim();
   const slug = (formData.get("slug") as string | null)?.trim();

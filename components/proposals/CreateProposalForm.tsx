@@ -3,7 +3,8 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { createProposalAction, slugify } from "@/app/actions/proposals";
+import { createProposalAction } from "@/app/actions/proposals";
+import { slugify } from "@/lib/utils";
 
 interface Client {
   id: string;
