@@ -98,6 +98,41 @@ export async function sendProposalAction(proposalId: string, email: string): Pro
   return { success: true, emailSent: true };
 }
 
+export async function updateProposalAction(proposalId: string, formData: FormData): Promise<SimpleResult> {
+  const title = (formData.get("title") as string | null)?.trim();
+  const slug = (formData.get("slug") as string | null)?.trim();
+  const html = (formData.get("html") as string | null)?.trim();
+  const clientId = (formData.get("client_id") as string | null)?.trim() || null;
+  const recipientEmail = (formData.get("recipient_email") as string | null)?.trim() || null;
+
+  if (!title || !slug) {
+    return { success: false, error: "Title and slug are required." };
+  }
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    return { success: false, error: "Slug may only contain lowercase letters, numbers, and hyphens." };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updates: any = { title, slug, client_id: clientId, recipient_email: recipientEmail };
+  // Only replace HTML if a new one was provided
+  if (html) updates.html = html;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createClient() as any;
+  const { error } = await supabase.from("proposals").update(updates).eq("id", proposalId);
+
+  if (error) {
+    if (error.code === "23505") {
+      return { success: false, error: "That slug is already taken. Choose a different one." };
+    }
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/proposals");
+  revalidatePath(`/proposals/${proposalId}`);
+  return { success: true };
+}
+
 export async function deleteProposalAction(proposalId: string): Promise<SimpleResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any;
