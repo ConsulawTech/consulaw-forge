@@ -7,6 +7,7 @@ import { SendProposalButton } from "@/components/proposals/SendProposalButton";
 import { CopyLinkButton } from "@/components/proposals/CopyLinkButton";
 import { DeleteProposalButton } from "@/components/proposals/DeleteProposalButton";
 import type { ProposalSubmission } from "@/lib/types";
+import { ProposalStats } from "@/components/proposals/ProposalStats";
 
 const STATUS_COLORS: Record<string, string> = {
   draft:  "bg-[rgba(148,163,184,0.15)] text-[#475569]",
@@ -70,25 +71,13 @@ export default async function ProposalDetailPage({
                 </span>
               </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-[rgba(241,245,249,0.7)] rounded-xl p-3 text-center">
-                  <div className="text-[22px] font-extrabold text-[#0f172a]">{p.view_count}</div>
-                  <div className="text-[11px] text-[#94a3b8] mt-0.5">Views</div>
-                </div>
-                <div className="bg-[rgba(241,245,249,0.7)] rounded-xl p-3 text-center">
-                  <div className="text-[13px] font-bold text-[#0f172a]">
-                    {p.sent_at ? formatDate(p.sent_at) : "—"}
-                  </div>
-                  <div className="text-[11px] text-[#94a3b8] mt-0.5">Sent</div>
-                </div>
-                <div className="bg-[rgba(241,245,249,0.7)] rounded-xl p-3 text-center">
-                  <div className="text-[13px] font-bold text-[#0f172a]">
-                    {p.viewed_at ? formatDate(p.viewed_at) : "—"}
-                  </div>
-                  <div className="text-[11px] text-[#94a3b8] mt-0.5">Last viewed</div>
-                </div>
-              </div>
+              {/* Stats — live via Supabase Realtime */}
+              <ProposalStats
+                proposalId={p.id}
+                initialViewCount={p.view_count}
+                initialSentAt={p.sent_at}
+                initialViewedAt={p.viewed_at}
+              />
 
               {/* Public URL */}
               <div>
