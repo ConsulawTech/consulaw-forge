@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, X, AlertTriangle, Loader2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Trash2, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 
@@ -64,8 +65,8 @@ export function DeleteButton({
         </Button>
       )}
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      {open && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <div className="glass rounded-2xl w-full max-w-[420px] mx-4 flex flex-col max-h-[90vh] shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/50 flex-shrink-0">
               <div className="flex items-center gap-2.5">
@@ -110,7 +111,8 @@ export function DeleteButton({
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
