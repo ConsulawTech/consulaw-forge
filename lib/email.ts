@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM = process.env.RESEND_FROM ?? "Consulaw Forge <noreply@consulawtech.com>";
+const FROM = process.env.RESEND_FROM ?? "Consulaw Forge <forge@consulawtech.com>";
 
 function htmlToText(html: string): string {
   return html
@@ -29,17 +29,19 @@ export async function sendEmail({
 }) {
   if (!resend) return { ok: false, reason: "no_api_key" };
   const plainText = text ?? htmlToText(html);
+  const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@consulawtech.com>`;
   const { error } = await resend.emails.send({
     from: FROM,
     to,
+    replyTo: "forge@consulawtech.com",
     subject,
     html,
     text: plainText,
-    replyTo: "support@consulawtech.com",
     headers: {
-      "X-Mailer": "ConsulawForge",
-      Precedence: "bulk",
-      "List-Unsubscribe": "<mailto:unsubscribe@consulawtech.com>",
+      "Message-ID": messageId,
+      "X-Mailer": "ConsulawForge/1.0",
+      "X-Priority": "3",
+      "MIME-Version": "1.0",
     },
   });
   if (error) return { ok: false, reason: error.message };
