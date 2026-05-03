@@ -58,7 +58,7 @@ export async function createClientAction(formData: FormData): Promise<CreateClie
   }
 
   // Send welcome email (non-blocking — don't fail the whole action if email fails)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://consulaw-forge.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://forge.consulawtech.com";
   const html = clientWelcomeEmail({
     clientName: name,
     email,
@@ -119,7 +119,7 @@ export async function resendClientCredentialsAction(clientId: string): Promise<S
       .eq("id", clientId);
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://consulaw-forge.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://forge.consulawtech.com";
   const html = clientWelcomeEmail({
     clientName: clientRow.name,
     email: clientRow.email,
