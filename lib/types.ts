@@ -108,6 +108,7 @@ export interface Proposal {
   created_at: string;
   sent_at: string | null;
   viewed_at: string | null;
+  recipient_email: string | null;
   client?: Pick<Client, "id" | "name" | "logo_color" | "logo_letter"> & { email?: string | null };
 }
 

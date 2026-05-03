@@ -7,10 +7,11 @@ import { Send, Check, AlertTriangle } from "lucide-react";
 
 interface SendProposalButtonProps {
   proposalId: string;
-  hasClientEmail: boolean;
+  defaultEmail: string;
 }
 
-export function SendProposalButton({ proposalId, hasClientEmail }: SendProposalButtonProps) {
+export function SendProposalButton({ proposalId, defaultEmail }: SendProposalButtonProps) {
+  const [email, setEmail] = useState(defaultEmail);
   const [loading, setLoading] = useState(false);
   const [state, setState] = useState<"idle" | "success" | "email_failed" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -18,7 +19,7 @@ export function SendProposalButton({ proposalId, hasClientEmail }: SendProposalB
   async function handleSend() {
     setLoading(true);
     setState("idle");
-    const result = await sendProposalAction(proposalId);
+    const result = await sendProposalAction(proposalId, email);
     setLoading(false);
     if (!result.success) {
       setState("error");
@@ -31,21 +32,34 @@ export function SendProposalButton({ proposalId, hasClientEmail }: SendProposalB
     }
   }
 
+  const inputCls =
+    "flex-1 px-3 py-2 text-[13px] rounded-xl bg-white/60 border border-white/50 outline-none focus:border-[#1B3FEE]/40 focus:ring-2 focus:ring-[#1B3FEE]/10 text-[#0f172a] placeholder:text-[#94a3b8]";
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <Button
-        variant="primary"
-        onClick={handleSend}
-        loading={loading}
-        disabled={!hasClientEmail || loading}
-        title={!hasClientEmail ? "Link a client with an email address to send this proposal." : undefined}
-      >
-        <Send className="w-3.5 h-3.5" />
-        {loading ? "Sending…" : "Send to Client"}
-      </Button>
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setState("idle"); }}
+          placeholder="recipient@email.com"
+          className={inputCls}
+          disabled={loading}
+        />
+        <Button
+          variant="primary"
+          onClick={handleSend}
+          loading={loading}
+          disabled={loading || !email.trim()}
+        >
+          <Send className="w-3.5 h-3.5" />
+          {loading ? "Sending…" : "Send"}
+        </Button>
+      </div>
+
       {state === "success" && (
         <div className="flex items-center gap-1.5 text-[11.5px] text-[#10b981]">
-          <Check className="w-3 h-3" /> Sent via email.
+          <Check className="w-3 h-3" /> Sent to {email}.
         </div>
       )}
       {state === "email_failed" && (

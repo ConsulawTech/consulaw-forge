@@ -68,20 +68,19 @@ export async function GET(
     });
   }
 
-  // Rewrite the form submission URL so the proposal's fetch() hits our real API.
+  // Rewrite the form's fetch URL so client submissions hit our real API endpoint.
   // Proposals built with the localhost placeholder are automatically corrected on serve.
   const servedHtml = (proposal.html as string).replace(
     /https?:\/\/[^\s"']*\/api\/submit-proposal/g,
     `/api/proposals/${slug}/submit`
   );
 
-  // Fire-and-forget: increment view count and update timestamps without blocking the response.
+  // Fire-and-forget: track view without blocking the response
   void admin
     .from("proposals")
     .update({
       view_count: (proposal.view_count ?? 0) + 1,
       viewed_at: new Date().toISOString(),
-      // Only promote status to 'viewed' if the proposal has been sent (not draft previews)
       status: proposal.status !== "draft" ? "viewed" : "draft",
     })
     .eq("id", proposal.id);
@@ -90,7 +89,6 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      // Disable caching so view counts are accurate on every hit
       "Cache-Control": "no-store",
     },
   });

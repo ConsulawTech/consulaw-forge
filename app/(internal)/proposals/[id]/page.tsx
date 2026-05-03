@@ -26,7 +26,7 @@ export default async function ProposalDetailPage({
   const [{ data: p }, { data: submissionsRaw }] = await Promise.all([
     supabase
       .from("proposals")
-      .select("*, client:clients(id, name, email, logo_color, logo_letter)")
+      .select("*, recipient_email, client:clients(id, name, email, logo_color, logo_letter)")
       .eq("id", id)
       .single(),
     supabase
@@ -111,7 +111,10 @@ export default async function ProposalDetailPage({
                 >
                   Preview →
                 </a>
-                <SendProposalButton proposalId={p.id} hasClientEmail={!!p.client?.email} />
+                <SendProposalButton
+                  proposalId={p.id}
+                  defaultEmail={p.recipient_email ?? p.client?.email ?? ""}
+                />
                 <DeleteProposalButton proposalId={p.id} proposalTitle={p.title} />
               </div>
             </div>

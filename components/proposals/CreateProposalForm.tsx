@@ -20,6 +20,7 @@ export function CreateProposalForm({ clients }: { clients: Client[] }) {
   const [html, setHtml] = useState("");
   const [fileName, setFileName] = useState("");
   const [clientId, setClientId] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +71,7 @@ export function CreateProposalForm({ clients }: { clients: Client[] }) {
     fd.append("slug", slug);
     fd.append("html", html);
     if (clientId) fd.append("client_id", clientId);
+    if (recipientEmail) fd.append("recipient_email", recipientEmail);
     const result = await createProposalAction(fd);
     setLoading(false);
     if (!result.success) {
@@ -144,6 +146,21 @@ export function CreateProposalForm({ clients }: { clients: Client[] }) {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Recipient email */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-[12.5px] font-semibold text-[#0f172a]">
+          Recipient Email{" "}
+          <span className="text-[#94a3b8] font-normal">(optional — can also be set when sending)</span>
+        </label>
+        <input
+          type="email"
+          value={recipientEmail}
+          onChange={(e) => setRecipientEmail(e.target.value)}
+          placeholder="client@example.com"
+          className={inputCls}
+        />
       </div>
 
       {/* HTML upload */}
