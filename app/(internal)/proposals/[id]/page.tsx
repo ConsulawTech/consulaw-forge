@@ -111,6 +111,12 @@ export default async function ProposalDetailPage({
                 >
                   Preview →
                 </a>
+                <Link
+                  href={`/proposals/${p.id}/edit`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold bg-white/65 border border-white/60 text-[#475569] hover:bg-white/85 transition-all"
+                >
+                  Edit
+                </Link>
                 <SendProposalButton
                   proposalId={p.id}
                   defaultEmail={p.recipient_email ?? p.client?.email ?? ""}
