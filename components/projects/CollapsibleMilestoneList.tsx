@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useCallback, useOptimistic } from "react";
-import { ChevronDown, ChevronRight, Calendar, User, ArrowUp, ArrowDown } from "lucide-react";
+import { useState, useCallback, useOptimistic, useTransition } from "react";
+import { ChevronDown, ChevronRight, Calendar, User, ArrowUp, ArrowDown, Link2, X } from "lucide-react";
 import { formatDate, getAvatarColor, deadlineStatus } from "@/lib/utils";
-import { TaskStatusBadge } from "@/components/ui/Badge";
+import { TaskStatusSelect } from "@/components/tasks/TaskStatusSelect";
 import { Avatar } from "@/components/ui/Avatar";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { NewTaskButton } from "@/components/tasks/NewTaskButton";
 import { deleteMilestoneAction, deleteTaskAction, updateMilestoneOrderAction } from "@/app/actions/projects";
+import { addTaskDependency, removeTaskDependency } from "@/app/actions/tasks";
+import type { TaskStatus } from "@/lib/types";
 
 function ProgressRing({ pct, color }: { pct: number; color: string }) {
   const r = 15;
@@ -28,11 +30,64 @@ function ProgressRing({ pct, color }: { pct: number; color: string }) {
   );
 }
 
+interface Dependency {
+  task_id: string;
+  depends_on_task_id: string;
+}
+
 interface CollapsibleMilestoneListProps {
   milestones: any[];
   projectId: string;
   projectForModal: { id: string; name: string }[];
   profilesForModal: { id: string; full_name: string }[];
+  initialDependencies?: Dependency[];
+}
+
+function DependencyPickerButton({
+  taskId,
+  allTasks,
+  existingDepIds,
+  onAdd,
+}: {
+  taskId: string;
+  allTasks: any[];
+  existingDepIds: string[];
+  onAdd: (depId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const available = allTasks.filter((t) => t.id !== taskId && !existingDepIds.includes(t.id));
+
+  if (available.length === 0) return null;
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-[#1B3FEE] hover:bg-blue-50 transition-colors opacity-0 group-hover:opacity-100"
+        title="Add dependency"
+      >
+        <Link2 className="w-3 h-3" />
+      </button>
+    );
+  }
+
+  return (
+    <select
+      autoFocus
+      defaultValue=""
+      className="text-[11.5px] rounded-lg border border-slate-200 px-2 py-1 outline-none bg-white text-slate-700 cursor-pointer max-w-[160px]"
+      onChange={(e) => {
+        if (e.target.value) onAdd(e.target.value);
+        setOpen(false);
+      }}
+      onBlur={() => setOpen(false)}
+    >
+      <option value="">Add dependency…</option>
+      {available.map((t) => (
+        <option key={t.id} value={t.id}>{t.title}</option>
+      ))}
+    </select>
+  );
 }
 
 export function CollapsibleMilestoneList({
@@ -40,11 +95,38 @@ export function CollapsibleMilestoneList({
   projectId,
   projectForModal,
   profilesForModal,
+  initialDependencies = [],
 }: CollapsibleMilestoneListProps) {
   const [optimisticMilestones, setOptimisticMilestones] = useOptimistic(initialMilestones);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () => new Set(initialMilestones.map((m) => m.id))
   );
+  const [dependencies, setDependencies] = useState<Dependency[]>(initialDependencies);
+  const [, startTransition] = useTransition();
+
+  const allTasks: any[] = optimisticMilestones.flatMap((m: any) => m.tasks ?? []);
+  const taskById = Object.fromEntries(allTasks.map((t: any) => [t.id, t]));
+
+  const depsForTask = (taskId: string) =>
+    dependencies
+      .filter((d) => d.task_id === taskId)
+      .map((d) => ({ ...d, dep_task: taskById[d.depends_on_task_id] }))
+      .filter((d) => d.dep_task);
+
+  const existingDepIds = (taskId: string) =>
+    dependencies.filter((d) => d.task_id === taskId).map((d) => d.depends_on_task_id);
+
+  function handleAddDep(taskId: string, depId: string) {
+    setDependencies((prev) => [...prev, { task_id: taskId, depends_on_task_id: depId }]);
+    startTransition(() => addTaskDependency(taskId, depId));
+  }
+
+  function handleRemoveDep(taskId: string, depId: string) {
+    setDependencies((prev) =>
+      prev.filter((d) => !(d.task_id === taskId && d.depends_on_task_id === depId))
+    );
+    startTransition(() => removeTaskDependency(taskId, depId));
+  }
 
   const toggle = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -65,12 +147,8 @@ export function CollapsibleMilestoneList({
         newMilestones[swapIndex],
         newMilestones[index],
       ];
-
-      // Optimistic update
       setOptimisticMilestones(newMilestones);
-
-      const newOrderIds = newMilestones.map((m) => m.id);
-      await updateMilestoneOrderAction(projectId, newOrderIds);
+      await updateMilestoneOrderAction(projectId, newMilestones.map((m) => m.id));
     },
     [optimisticMilestones, projectId, setOptimisticMilestones]
   );
@@ -103,22 +181,17 @@ export function CollapsibleMilestoneList({
           >
             {/* Task header */}
             <div className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors text-left">
-              {/* Color bar */}
               <div
                 className="w-1 h-10 rounded-full flex-shrink-0"
                 style={{ background: ms.color ?? "#1B3FEE" }}
               />
 
-              <button
-                onClick={() => toggle(ms.id)}
-                className="flex-1 min-w-0 text-left"
-              >
+              <button onClick={() => toggle(ms.id)} className="flex-1 min-w-0 text-left">
                 <div className="text-[15px] font-bold text-slate-900">{ms.title}</div>
                 {ms.description && <div className="text-[12px] text-slate-500 mt-0.5">{ms.description}</div>}
               </button>
 
               <div className="flex items-center gap-3 flex-shrink-0">
-                {/* Move up/down */}
                 <div className="flex flex-col gap-0.5 mr-1">
                   <button
                     onClick={() => handleMove(index, "up")}
@@ -183,45 +256,95 @@ export function CollapsibleMilestoneList({
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-50">
-                    {(ms.tasks ?? []).map((task: any) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/40 transition-colors group"
-                      >
-                        {/* Date */}
-                        <div className="w-[90px] flex-shrink-0">
-                          <div className="text-[12px] font-semibold text-slate-700">
-                            {task.due_date ? formatDate(task.due_date, { month: "short", day: "numeric" }) : "No date"}
+                    {(ms.tasks ?? []).map((task: any) => {
+                      const taskDeps = depsForTask(task.id);
+                      const isBlocked = taskDeps.some((d) => d.dep_task?.status !== "done");
+
+                      return (
+                        <div
+                          key={task.id}
+                          className="flex items-start gap-4 px-5 py-3.5 hover:bg-slate-50/40 transition-colors group"
+                        >
+                          {/* Date */}
+                          <div className="w-[90px] flex-shrink-0 pt-0.5">
+                            <div className="text-[12px] font-semibold text-slate-700">
+                              {task.due_date ? formatDate(task.due_date, { month: "short", day: "numeric" }) : "No date"}
+                            </div>
+                          </div>
+
+                          {/* Assignee */}
+                          <div className="flex-shrink-0 pt-0.5">
+                            {task.assignee ? (
+                              <Avatar name={task.assignee.full_name} color={getAvatarColor(task.assignee.full_name)} size="xs" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
+                                <User className="w-3 h-3 text-slate-400" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Title + dependencies */}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13.5px] font-medium text-slate-800">{task.title}</div>
+                            <div className="text-[11px] text-slate-400">{task.assignee?.full_name ?? "Unassigned"}</div>
+                            {taskDeps.length > 0 && (
+                              <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                                {taskDeps.map((dep) => (
+                                  <span
+                                    key={dep.depends_on_task_id}
+                                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium border ${
+                                      dep.dep_task.status === "done"
+                                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                        : "bg-orange-50 text-orange-600 border-orange-100"
+                                    }`}
+                                  >
+                                    {dep.dep_task.title}
+                                    <button
+                                      onClick={() => handleRemoveDep(task.id, dep.depends_on_task_id)}
+                                      className="hover:opacity-70 transition-opacity ml-0.5"
+                                    >
+                                      <X className="w-2.5 h-2.5" />
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Blocked badge */}
+                          {isBlocked && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-100 rounded-full flex-shrink-0 self-center whitespace-nowrap">
+                              Blocked
+                            </span>
+                          )}
+
+                          {/* Status select */}
+                          <div className="flex-shrink-0 self-center">
+                            <TaskStatusSelect taskId={task.id} status={task.status as TaskStatus} />
+                          </div>
+
+                          {/* Add dependency */}
+                          <div className="flex-shrink-0 self-center">
+                            <DependencyPickerButton
+                              taskId={task.id}
+                              allTasks={allTasks}
+                              existingDepIds={existingDepIds(task.id)}
+                              onAdd={(depId) => handleAddDep(task.id, depId)}
+                            />
+                          </div>
+
+                          {/* Delete */}
+                          <div className="flex-shrink-0 self-center">
+                            <DeleteButton
+                              entityId={task.id}
+                              entityName={task.title}
+                              entityType="checkpoint"
+                              deleteAction={deleteTaskAction}
+                            />
                           </div>
                         </div>
-
-                        {/* Assignee */}
-                        {task.assignee ? (
-                          <Avatar name={task.assignee.full_name} color={getAvatarColor(task.assignee.full_name)} size="xs" />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                            <User className="w-3 h-3 text-slate-400" />
-                          </div>
-                        )}
-
-                        {/* Title */}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13.5px] font-medium text-slate-800">{task.title}</div>
-                          <div className="text-[11px] text-slate-400">{task.assignee?.full_name ?? "Unassigned"}</div>
-                        </div>
-
-                        {/* Status */}
-                        <TaskStatusBadge status={task.status} />
-
-                        {/* Delete */}
-                        <DeleteButton
-                          entityId={task.id}
-                          entityName={task.title}
-                          entityType="checkpoint"
-                          deleteAction={deleteTaskAction}
-                        />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

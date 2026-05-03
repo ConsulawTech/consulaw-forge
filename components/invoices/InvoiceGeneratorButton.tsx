@@ -10,6 +10,8 @@ interface ProposalOption {
   title: string;
   clientName: string;
   recipientEmail: string;
+  submissionTemplate: string | null;
+  submissionFeatures: string[];
 }
 
 interface Props {
@@ -22,21 +24,39 @@ function generateInvoiceNumber() {
   return `INV-${date}-${String(Math.floor(1000 + Math.random() * 9000))}`;
 }
 
+function buildInitialItems(
+  template: string | null,
+  features: string[],
+  fallbackTitle: string
+): InvoiceItem[] {
+  const items: InvoiceItem[] = [];
+  if (template) items.push({ description: template, amount: 0 });
+  for (const f of features) items.push({ description: f, amount: 0 });
+  if (items.length === 0) items.push({ description: fallbackTitle, amount: 0 });
+  return items;
+}
+
 const CURRENCIES = ["USD", "EUR", "GBP", "NGN", "CAD", "AUD"];
 
 export function InvoiceGeneratorButton({ proposals }: Props) {
+  const firstProposal = proposals[0];
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "emailFailed" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const [selectedProposalId, setSelectedProposalId] = useState(proposals[0]?.id ?? "");
+  const [selectedProposalId, setSelectedProposalId] = useState(firstProposal?.id ?? "");
   const [invoiceNumber, setInvoiceNumber] = useState(generateInvoiceNumber);
-  const [email, setEmail] = useState(proposals[0]?.recipientEmail ?? "");
+  const [email, setEmail] = useState(firstProposal?.recipientEmail ?? "");
   const [currency, setCurrency] = useState("USD");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<InvoiceItem[]>([{ description: "", amount: 0 }]);
+  const [items, setItems] = useState<InvoiceItem[]>(() =>
+    firstProposal
+      ? buildInitialItems(firstProposal.submissionTemplate, firstProposal.submissionFeatures, firstProposal.title)
+      : [{ description: "", amount: 0 }]
+  );
 
   const total = items.reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
@@ -45,16 +65,24 @@ export function InvoiceGeneratorButton({ proposals }: Props) {
   function handleProposalChange(id: string) {
     setSelectedProposalId(id);
     const p = proposals.find((x) => x.id === id);
-    if (p) setEmail(p.recipientEmail);
+    if (p) {
+      setEmail(p.recipientEmail);
+      setItems(buildInitialItems(p.submissionTemplate, p.submissionFeatures, p.title));
+    }
   }
 
   function handleOpen() {
     setInvoiceNumber(generateInvoiceNumber());
-    setSelectedProposalId(proposals[0]?.id ?? "");
-    setEmail(proposals[0]?.recipientEmail ?? "");
+    const p = proposals[0];
+    setSelectedProposalId(p?.id ?? "");
+    setEmail(p?.recipientEmail ?? "");
+    setItems(
+      p
+        ? buildInitialItems(p.submissionTemplate, p.submissionFeatures, p.title)
+        : [{ description: "", amount: 0 }]
+    );
     setStatus("idle");
     setErrorMsg("");
-    setItems([{ description: "", amount: 0 }]);
     setOpen(true);
   }
 

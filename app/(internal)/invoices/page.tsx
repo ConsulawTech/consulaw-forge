@@ -12,7 +12,7 @@ export default async function InvoicesPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any;
 
-  const [{ data: invoicesRaw }, { data: proposalsRaw }] = await Promise.all([
+  const [{ data: invoicesRaw }, { data: proposalsRaw }, { data: submissionsRaw }] = await Promise.all([
     supabase
       .from("invoices")
       .select("*")
@@ -21,15 +21,34 @@ export default async function InvoicesPage() {
       .from("proposals")
       .select("id, title, slug, recipient_email, client:clients(name), status")
       .order("created_at", { ascending: false }),
+    // Latest submission per proposal for pre-populating invoice items
+    (supabase as any)
+      .from("proposal_submissions")
+      .select("proposal_id, selected_template, selected_features")
+      .order("submitted_at", { ascending: false }),
   ]);
 
   const invoices = invoicesRaw ?? [];
+
+  // Build a map of proposalId → first (most recent) submission
+  const submissionByProposal: Record<string, { selected_template: string | null; selected_features: string[] }> = {};
+  for (const s of (submissionsRaw ?? []) as any[]) {
+    if (!submissionByProposal[s.proposal_id]) {
+      submissionByProposal[s.proposal_id] = {
+        selected_template: s.selected_template ?? null,
+        selected_features: Array.isArray(s.selected_features) ? s.selected_features : [],
+      };
+    }
+  }
+
   const proposals = (proposalsRaw ?? []).map((p: any) => ({
     id: p.id,
     title: p.title,
     slug: p.slug,
     clientName: p.client?.name ?? "Client",
     recipientEmail: p.recipient_email ?? "",
+    submissionTemplate: submissionByProposal[p.id]?.selected_template ?? null,
+    submissionFeatures: submissionByProposal[p.id]?.selected_features ?? [],
   }));
 
   return (

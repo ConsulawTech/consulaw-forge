@@ -31,3 +31,28 @@ export async function updateTaskStatus(taskId: string, status: TaskStatus) {
   revalidatePath("/timeline");
   revalidatePath("/checkpoints");
 }
+
+export async function addTaskDependency(taskId: string, dependsOnId: string) {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+  await db.from("task_dependencies").upsert(
+    { task_id: taskId, depends_on_task_id: dependsOnId },
+    { onConflict: "task_id,depends_on_task_id", ignoreDuplicates: true }
+  );
+  revalidatePath("/projects");
+  revalidatePath("/tasks");
+}
+
+export async function removeTaskDependency(taskId: string, dependsOnId: string) {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
+  await db
+    .from("task_dependencies")
+    .delete()
+    .eq("task_id", taskId)
+    .eq("depends_on_task_id", dependsOnId);
+  revalidatePath("/projects");
+  revalidatePath("/tasks");
+}

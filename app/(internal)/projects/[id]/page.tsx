@@ -30,6 +30,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!projectRaw) notFound();
 
+  // Fetch task dependencies for all checkpoints in this project
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allTaskIds = ((projectRaw as any).milestones ?? []).flatMap((m: any) => (m.tasks ?? []).map((t: any) => t.id));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const depsRaw: any[] = allTaskIds.length > 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? ((await (supabase as any).from("task_dependencies").select("task_id, depends_on_task_id").in("task_id", allTaskIds)).data ?? [])
+    : [];
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clientId = (projectRaw as any).client_id as string | null;
   const { data: proposalsRaw } = clientId
@@ -150,6 +159,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           projectId={project.id}
           projectForModal={projectForModal}
           profilesForModal={profilesForModal}
+          initialDependencies={depsRaw}
         />
       </div>
     </div>
