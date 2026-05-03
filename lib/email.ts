@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM = process.env.RESEND_FROM ?? "Consulaw Forge <forge@consulawtech.com>";
+const FROM = process.env.RESEND_FROM ?? "Consulaw Forge <no-reply@consulawtech.com>";
 
 function htmlToText(html: string): string {
   return html
@@ -33,7 +33,6 @@ export async function sendEmail({
   const { error } = await resend.emails.send({
     from: FROM,
     to,
-    replyTo: "forge@consulawtech.com",
     subject,
     html,
     text: plainText,
