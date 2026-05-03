@@ -42,15 +42,15 @@ export function AddMilestoneButton({ projects, defaultProjectId, label = "Add Ta
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="glass rounded-2xl w-full max-w-[400px] mx-4 overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/50">
+          <div className="glass rounded-2xl w-full max-w-[400px] mx-4 flex flex-col max-h-[90vh] shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/50 flex-shrink-0">
               <span className="text-[15px] font-bold text-[#0f172a]">{label}</span>
               <button onClick={() => setOpen(false)} className="w-7 h-7 rounded-[8px] bg-white/60 border border-white/50 flex items-center justify-center hover:bg-white/80 cursor-pointer transition-colors">
                 <X className="w-3.5 h-3.5 text-[#475569]" />
               </button>
             </div>
 
-            <form ref={formRef} onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 overflow-y-auto">
               {error && (
                 <div className="text-[12.5px] text-[#ef4444] bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl px-3 py-2">{error}</div>
               )}

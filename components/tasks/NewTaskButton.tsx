@@ -8,15 +8,18 @@ import { NewTaskModal } from "./NewTaskModal";
 interface Project { id: string; name: string }
 interface Profile { id: string; full_name: string }
 
+interface MilestoneOption { id: string; title: string; projectId: string }
+
 interface NewTaskButtonProps {
   projects: Project[];
   profiles: Profile[];
+  milestones?: MilestoneOption[];
   defaultProjectId?: string;
   label?: string;
   variant?: "primary" | "secondary" | "inline";
 }
 
-export function NewTaskButton({ projects, profiles, defaultProjectId, label = "New Task", variant = "primary" }: NewTaskButtonProps) {
+export function NewTaskButton({ projects, profiles, milestones, defaultProjectId, label = "New Task", variant = "primary" }: NewTaskButtonProps) {
   const [open, setOpen] = useState(false);
 
   if (variant === "inline") {
@@ -26,7 +29,7 @@ export function NewTaskButton({ projects, profiles, defaultProjectId, label = "N
           <Plus className="w-3.5 h-3.5" /> {label}
         </button>
         {open && (
-          <NewTaskModal projects={projects} profiles={profiles} defaultProjectId={defaultProjectId} onClose={() => setOpen(false)} />
+          <NewTaskModal projects={projects} profiles={profiles} milestones={milestones} defaultProjectId={defaultProjectId} onClose={() => setOpen(false)} />
         )}
       </>
     );
@@ -38,7 +41,7 @@ export function NewTaskButton({ projects, profiles, defaultProjectId, label = "N
         <Plus className="w-3.5 h-3.5" /> {label}
       </Button>
       {open && (
-        <NewTaskModal projects={projects} profiles={profiles} defaultProjectId={defaultProjectId} onClose={() => setOpen(false)} />
+        <NewTaskModal projects={projects} profiles={profiles} milestones={milestones} defaultProjectId={defaultProjectId} onClose={() => setOpen(false)} />
       )}
     </>
   );

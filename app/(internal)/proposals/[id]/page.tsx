@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/utils";
 import { SendProposalButton } from "@/components/proposals/SendProposalButton";
 import { CopyLinkButton } from "@/components/proposals/CopyLinkButton";
 import { DeleteProposalButton } from "@/components/proposals/DeleteProposalButton";
+import { InvoiceButton } from "@/components/proposals/InvoiceButton";
 import type { ProposalSubmission } from "@/lib/types";
 import { ProposalStats } from "@/components/proposals/ProposalStats";
 
@@ -109,6 +110,12 @@ export default async function ProposalDetailPage({
                 <SendProposalButton
                   proposalId={p.id}
                   defaultEmail={p.recipient_email ?? p.client?.email ?? ""}
+                />
+                <InvoiceButton
+                  proposalId={p.id}
+                  proposalTitle={p.title}
+                  clientName={p.client?.name ?? "Client"}
+                  recipientEmail={p.recipient_email ?? p.client?.email ?? ""}
                 />
                 <DeleteProposalButton proposalId={p.id} proposalTitle={p.title} />
               </div>

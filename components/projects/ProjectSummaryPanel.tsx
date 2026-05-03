@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { FolderKanban } from "lucide-react";
-import { Button } from "@/components/ui/Button";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { SingleProjectReportButton } from "./SingleProjectReportButton";
 import { formatDate, deadlineStatus } from "@/lib/utils";
@@ -62,6 +61,12 @@ export function ProjectSummaryPanel({ project }: { project: Project }) {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            <Link
+              href={`/projects/${project.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-[#1B3FEE] text-white hover:bg-[#1535d4] transition-colors"
+            >
+              <FolderKanban className="w-3.5 h-3.5" /> Open
+            </Link>
             <SingleProjectReportButton
               project={{
                 id: project.id,
@@ -173,12 +178,6 @@ export function ProjectSummaryPanel({ project }: { project: Project }) {
         )}
       </div>
 
-      {/* CTA */}
-      <Link href={`/projects/${project.id}`}>
-        <Button variant="primary" size="md" className="w-full">
-          <FolderKanban className="w-4 h-4" /> Open Full Project
-        </Button>
-      </Link>
     </div>
   );
 }

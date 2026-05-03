@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM = process.env.RESEND_FROM ?? "Consulaw Forge <forge@consulawtech.com>";
+const FROM = process.env.RESEND_FROM ?? "Consulaw Forge <no-reply@consulawtech.com>";
 
 function htmlToText(html: string): string {
   return html
@@ -33,7 +33,6 @@ export async function sendEmail({
   const { error } = await resend.emails.send({
     from: FROM,
     to,
-    replyTo: "forge@consulawtech.com",
     subject,
     html,
     text: plainText,
@@ -317,6 +316,119 @@ export function clientWelcomeEmail(opts: {
 
         <tr>
           <td style="background:#f8faff;padding:20px 40px;border-top:1px solid #e2e8f0;">
+            <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;">
+              Consulaw Tech · © ${new Date().getFullYear()} All rights reserved
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export function invoiceEmail(opts: {
+  invoiceNumber: string;
+  clientName: string;
+  proposalTitle: string;
+  items: { description: string; amount: number }[];
+  currency: string;
+  total: number;
+  dueDate: string | null;
+  notes: string | null;
+}) {
+  const name = escapeHtml(opts.clientName);
+  const invoiceNo = escapeHtml(opts.invoiceNumber);
+  const title = escapeHtml(opts.proposalTitle);
+  const currency = opts.currency;
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
+  const rows = opts.items
+    .map(
+      (item) =>
+        `<tr>
+          <td style="padding:10px 16px;font-size:13px;color:#0f172a;border-bottom:1px solid #e2e8f0;">${escapeHtml(item.description)}</td>
+          <td style="padding:10px 16px;font-size:13px;color:#0f172a;text-align:right;border-bottom:1px solid #e2e8f0;white-space:nowrap;">${fmt(item.amount)}</td>
+        </tr>`
+    )
+    .join("");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8faff;font-family:Inter,system-ui,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8faff;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;max-width:100%;">
+
+        <tr>
+          <td style="background:#0f172a;padding:28px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:-0.5px;">Consulaw Forge</span>
+                </td>
+                <td style="text-align:right;">
+                  <span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Invoice</span><br/>
+                  <span style="color:#fff;font-size:13px;font-weight:700;">${invoiceNo}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:32px 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:top;">
+                  <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;">Billed to</p>
+                  <p style="margin:0;font-size:15px;font-weight:700;color:#0f172a;">${name}</p>
+                  <p style="margin:4px 0 0;font-size:13px;color:#475569;">${title}</p>
+                </td>
+                <td style="vertical-align:top;text-align:right;">
+                  <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;">Due date</p>
+                  <p style="margin:0;font-size:14px;font-weight:700;color:#0f172a;">${opts.dueDate ? escapeHtml(opts.dueDate) : "Upon receipt"}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+              <thead>
+                <tr style="background:#f8faff;">
+                  <th style="padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;text-align:left;">Description</th>
+                  <th style="padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#64748b;text-align:right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+              <tfoot>
+                <tr style="background:#f8faff;">
+                  <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#0f172a;">Total</td>
+                  <td style="padding:12px 16px;font-size:16px;font-weight:800;color:#1B3FEE;text-align:right;">${fmt(opts.total)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </td>
+        </tr>
+
+        ${opts.notes ? `
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <div style="background:#f8faff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;">
+              <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;">Notes</p>
+              <p style="margin:0;font-size:13px;color:#475569;line-height:1.6;">${escapeHtml(opts.notes)}</p>
+            </div>
+          </td>
+        </tr>` : ""}
+
+        <tr>
+          <td style="background:#f8faff;padding:20px 32px;border-top:1px solid #e2e8f0;">
             <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;">
               Consulaw Tech · © ${new Date().getFullYear()} All rights reserved
             </p>

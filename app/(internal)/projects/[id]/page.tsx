@@ -11,6 +11,7 @@ import { GenerateTasksButton } from "@/components/projects/GenerateTasksButton";
 import { CollapsibleMilestoneList } from "@/components/projects/CollapsibleMilestoneList";
 import { ProjectDocuments } from "@/components/documents/ProjectDocuments";
 import { deleteProjectAction } from "@/app/actions/projects";
+import { ProposalLightbox } from "@/components/proposals/ProposalLightbox";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,6 +31,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (!projectRaw) notFound();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clientId = (projectRaw as any).client_id as string | null;
+  const { data: proposalsRaw } = clientId
+    ? await supabase
+        .from("proposals")
+        .select("id, title, slug, status")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const project = projectRaw as any;
   const dlStatus = deadlineStatus(project.target_date);
 
@@ -41,6 +52,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const projectForModal = [{ id: project.id, name: project.name }];
   const profilesForModal = (profiles ?? []).map((p: { id: string; full_name: string }) => ({ id: p.id, full_name: p.full_name }));
+  const milestonesForModal = (project.milestones ?? []).map((m: { id: string; title: string }) => ({
+    id: m.id,
+    title: m.title,
+    projectId: project.id,
+  }));
   const teamProfilesForAi = (profiles ?? []).map((p: { id: string; full_name: string; job_title: string }) => ({ id: p.id, full_name: p.full_name, job_title: p.job_title }));
 
   return (
@@ -83,7 +99,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               teamProfiles={teamProfilesForAi}
             />
             <AddMilestoneButton projects={[{ id: project.id, name: project.name }]} defaultProjectId={project.id} label="Add Task" />
-            <NewTaskButton projects={projectForModal} profiles={profilesForModal} defaultProjectId={project.id} label="Add Checkpoint" variant="secondary" />
+            <NewTaskButton projects={projectForModal} profiles={profilesForModal} milestones={milestonesForModal} defaultProjectId={project.id} label="Add Checkpoint" variant="secondary" />
             <DeleteButton
               entityId={project.id}
               entityName={project.name}
@@ -117,6 +133,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <div className="mb-6">
           <ProjectDocuments projectId={project.id} initialDocuments={documentsRaw ?? []} />
         </div>
+
+        {/* Linked proposals */}
+        {proposalsRaw && proposalsRaw.length > 0 && (
+          <div className="rounded-2xl border border-slate-200/60 bg-white/70 backdrop-blur-sm p-5 mb-6 shadow-sm">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-3">
+              Linked Proposals
+            </p>
+            <ProposalLightbox proposals={proposalsRaw} />
+          </div>
+        )}
 
         {/* Tasks */}
         <CollapsibleMilestoneList

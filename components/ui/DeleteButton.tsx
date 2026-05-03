@@ -66,8 +66,8 @@ export function DeleteButton({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="glass rounded-2xl w-full max-w-[420px] mx-4 overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/50">
+          <div className="glass rounded-2xl w-full max-w-[420px] mx-4 flex flex-col max-h-[90vh] shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/50 flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-[8px] bg-[rgba(239,68,68,0.1)] flex items-center justify-center">
                   <AlertTriangle className="w-3.5 h-3.5 text-[#ef4444]" />
@@ -82,7 +82,7 @@ export function DeleteButton({
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto">
               {error && (
                 <div className="text-[12.5px] text-[#ef4444] bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] rounded-xl px-3 py-2 mb-4">
                   {error}
