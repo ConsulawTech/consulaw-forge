@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { createTaskAction } from "@/app/actions/projects";
@@ -40,8 +41,8 @@ export function NewTaskModal({ projects, profiles, milestones, defaultProjectId,
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="glass rounded-2xl w-full max-w-[440px] mx-4 flex flex-col max-h-[90vh] shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/50 flex-shrink-0">
           <span className="text-[15px] font-bold text-[#0f172a]">New Checkpoint</span>
@@ -136,6 +137,7 @@ export function NewTaskModal({ projects, profiles, milestones, defaultProjectId,
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

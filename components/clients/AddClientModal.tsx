@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useState, useRef } from "react";
 import { X, User, Mail, Check, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -36,7 +37,7 @@ export function AddClientModal({ onClose }: AddClientModalProps) {
   const inputCls = "w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl bg-white/60 border border-white/50 outline-none focus:border-[#1B3FEE]/40 focus:ring-2 focus:ring-[#1B3FEE]/10 text-[#0f172a] placeholder:text-[#94a3b8]";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="glass rounded-2xl w-full max-w-[440px] mx-4 overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/50">

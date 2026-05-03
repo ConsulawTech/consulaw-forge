@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useState, useRef } from "react";
 import { FileText, X, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -61,7 +62,7 @@ export function ProjectReportButton({ projects }: ProjectReportButtonProps) {
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <div className="glass rounded-2xl w-full max-w-[700px] mx-4 overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.15)] flex flex-col max-h-[85vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/50 flex-shrink-0">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { createMilestoneAction } from "@/app/actions/projects";
@@ -40,8 +41,8 @@ export function AddMilestoneButton({ projects, defaultProjectId, label = "Add Ta
         <Plus className="w-3.5 h-3.5" /> {label}
       </Button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      {open && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <div className="glass rounded-2xl w-full max-w-[400px] mx-4 flex flex-col max-h-[90vh] shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/50 flex-shrink-0">
               <span className="text-[15px] font-bold text-[#0f172a]">{label}</span>
@@ -99,7 +100,8 @@ export function AddMilestoneButton({ projects, defaultProjectId, label = "Add Ta
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

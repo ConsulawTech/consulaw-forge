@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { FileText, X, ExternalLink } from "lucide-react";
 
 interface ProposalRef {
@@ -43,19 +44,19 @@ export function ProposalLightbox({ proposals }: { proposals: ProposalRef[] }) {
         ))}
       </div>
 
-      {/* Lightbox */}
-      {active && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-sm">
-          {/* Lightbox header */}
-          <div className="flex items-center justify-between px-5 py-3 bg-white/95 border-b border-slate-200 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-[#1B3FEE]" />
+      {/* Lightbox — rendered via portal to escape any backdrop-filter stacking context */}
+      {active && createPortal(
+        <div className="fixed inset-0 z-[9999] flex flex-col bg-black/60 backdrop-blur-sm">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-slate-200 flex-shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <FileText className="w-4 h-4 text-[#1B3FEE] flex-shrink-0" />
               <span className="text-[14px] font-bold text-slate-900 truncate max-w-[400px]">{active.title}</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[active.status] ?? ""}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize flex-shrink-0 ${STATUS_COLORS[active.status] ?? ""}`}>
                 {active.status}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <a
                 href={`${appUrl}/${active.slug}`}
                 target="_blank"
@@ -73,13 +74,14 @@ export function ProposalLightbox({ proposals }: { proposals: ProposalRef[] }) {
             </div>
           </div>
 
-          {/* iframe */}
+          {/* Full-page iframe */}
           <iframe
             src={`${appUrl}/${active.slug}`}
-            className="flex-1 w-full border-0"
+            className="flex-1 w-full border-0 bg-white"
             title={active.title}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

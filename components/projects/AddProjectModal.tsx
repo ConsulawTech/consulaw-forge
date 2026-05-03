@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useState, useRef } from "react";
 import { X, FolderKanban, Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -63,7 +64,7 @@ export function AddProjectModal({ clients, preselectedClientId, teamProfiles, on
   const labelCls = "block text-[12px] font-semibold text-[#475569] mb-1.5";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="glass rounded-2xl w-full max-w-[480px] mx-4 overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/50">
           <div className="flex items-center gap-2.5">

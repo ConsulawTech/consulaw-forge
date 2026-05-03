@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Trash2, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { deleteProposalAction } from "@/app/actions/proposals";
@@ -37,9 +38,9 @@ export function DeleteProposalButton({ proposalId, proposalTitle }: DeletePropos
         Delete
       </Button>
 
-      {open && (
+      {open && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm"
           onClick={() => !loading && setOpen(false)}
         >
           <div
@@ -93,7 +94,8 @@ export function DeleteProposalButton({ proposalId, proposalTitle }: DeletePropos
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

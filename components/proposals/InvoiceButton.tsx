@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useState } from "react";
 import { Receipt, Plus, Trash2, X, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -119,7 +120,7 @@ export function InvoiceButton({ proposalId, proposalTitle, clientName, recipient
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
           <div className="glass rounded-2xl w-full max-w-[520px] flex flex-col max-h-[90vh] shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/50 flex-shrink-0">
