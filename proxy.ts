@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Known app path segments — never treat these as proposal slugs
 const RESERVED = new Set([
   "dashboard", "clients", "projects", "tasks", "checkpoints", "messages",
-  "timeline", "settings", "proposals", "portal", "login", "api", "_next", "favicon.ico",
+  "timeline", "settings", "proposals", "invoices", "portal", "login", "api", "_next", "favicon.ico",
 ]);
 
 export async function proxy(request: NextRequest) {
