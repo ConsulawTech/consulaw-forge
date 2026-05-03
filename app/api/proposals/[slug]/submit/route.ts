@@ -17,7 +17,9 @@ export async function POST(
     company?: string;
     message?: string;
     selectedTemplate?: string;
+    template?: string;
     features?: string[];
+    selectedFeatures?: string[];
   };
 
   try {
@@ -39,6 +41,15 @@ export async function POST(
     return NextResponse.json({ message: "Proposal not found" }, { status: 404 });
   }
 
+  // Accept features under either key name the HTML might use
+  const rawFeatures = Array.isArray(body.features)
+    ? body.features
+    : Array.isArray(body.selectedFeatures)
+    ? body.selectedFeatures
+    : [];
+
+  const rawTemplate = body.selectedTemplate ?? body.template ?? null;
+
   await admin.from("proposal_submissions").insert({
     proposal_id: proposal.id,
     client_name: body.name ?? null,
@@ -46,8 +57,8 @@ export async function POST(
     client_phone: body.phone ?? null,
     client_company: body.company ?? null,
     message: body.message ?? null,
-    selected_template: body.selectedTemplate ?? null,
-    selected_features: Array.isArray(body.features) ? body.features : [],
+    selected_template: rawTemplate,
+    selected_features: rawFeatures,
   });
 
   const teamEmail = process.env.TEAM_NOTIFICATION_EMAIL ?? "forge@consulawtech.com";
@@ -58,7 +69,7 @@ export async function POST(
       proposalTitle: proposal.title,
       slug,
       proposalId: proposal.id,
-      submission: body,
+      submission: { ...body, selectedTemplate: rawTemplate ?? undefined, features: rawFeatures },
     }),
   });
 

@@ -41,6 +41,14 @@ export default async function ProposalDetailPage({
   if (!p) notFound();
 
   const submissions: ProposalSubmission[] = submissionsRaw ?? [];
+
+  // Aggregate all selected features across every submission (deduplicated)
+  const allSubmissionFeatures: string[] = [
+    ...new Set(submissions.flatMap((s) => s.selected_features ?? [])),
+  ];
+  // Use the most recent submission's template
+  const latestTemplate = submissions[0]?.selected_template ?? null;
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://forge.consulawtech.com";
   const publicUrl = `${appUrl}/${p.slug}`;
 
@@ -116,8 +124,8 @@ export default async function ProposalDetailPage({
                   proposalTitle={p.title}
                   clientName={p.client?.name ?? "Client"}
                   recipientEmail={p.recipient_email ?? p.client?.email ?? ""}
-                  submissionTemplate={submissions[0]?.selected_template ?? null}
-                  submissionFeatures={submissions[0]?.selected_features ?? []}
+                  submissionTemplate={latestTemplate}
+                  submissionFeatures={allSubmissionFeatures}
                 />
                 <DeleteProposalButton proposalId={p.id} proposalTitle={p.title} />
               </div>
