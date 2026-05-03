@@ -10,6 +10,8 @@ interface Props {
   proposalTitle: string;
   clientName: string;
   recipientEmail: string;
+  submissionTemplate: string | null;
+  submissionFeatures: string[];
 }
 
 function generateInvoiceNumber() {
@@ -21,7 +23,19 @@ function generateInvoiceNumber() {
 
 const CURRENCIES = ["USD", "EUR", "GBP", "NGN", "CAD", "AUD"];
 
-export function InvoiceButton({ proposalId, proposalTitle, clientName, recipientEmail }: Props) {
+function buildInitialItems(
+  template: string | null,
+  features: string[],
+  fallbackTitle: string
+): InvoiceItem[] {
+  const items: InvoiceItem[] = [];
+  if (template) items.push({ description: template, amount: 0 });
+  for (const f of features) items.push({ description: f, amount: 0 });
+  if (items.length === 0) items.push({ description: fallbackTitle, amount: 0 });
+  return items;
+}
+
+export function InvoiceButton({ proposalId, proposalTitle, clientName, recipientEmail, submissionTemplate, submissionFeatures }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "emailFailed" | "error">("idle");
@@ -32,7 +46,9 @@ export function InvoiceButton({ proposalId, proposalTitle, clientName, recipient
   const [currency, setCurrency] = useState("USD");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<InvoiceItem[]>([{ description: proposalTitle, amount: 0 }]);
+  const [items, setItems] = useState<InvoiceItem[]>(() =>
+    buildInitialItems(submissionTemplate, submissionFeatures, proposalTitle)
+  );
 
   const total = items.reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
@@ -57,7 +73,7 @@ export function InvoiceButton({ proposalId, proposalTitle, clientName, recipient
     setEmail(recipientEmail);
     setStatus("idle");
     setErrorMsg("");
-    setItems([{ description: proposalTitle, amount: 0 }]);
+    setItems(buildInitialItems(submissionTemplate, submissionFeatures, proposalTitle));
     setOpen(true);
   }
 

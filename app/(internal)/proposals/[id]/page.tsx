@@ -116,6 +116,8 @@ export default async function ProposalDetailPage({
                   proposalTitle={p.title}
                   clientName={p.client?.name ?? "Client"}
                   recipientEmail={p.recipient_email ?? p.client?.email ?? ""}
+                  submissionTemplate={submissions[0]?.selected_template ?? null}
+                  submissionFeatures={submissions[0]?.selected_features ?? []}
                 />
                 <DeleteProposalButton proposalId={p.id} proposalTitle={p.title} />
               </div>
