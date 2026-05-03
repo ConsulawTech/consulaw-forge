@@ -8,7 +8,7 @@ export default async function ProposalsPage() {
   const supabase = await createClient() as any;
   const { data: raw } = await supabase
     .from("proposals")
-    .select("id, title, slug, status, view_count, created_at, sent_at, viewed_at, client:clients(id, name, logo_color, logo_letter)")
+    .select("id, title, slug, status, view_count, created_at, sent_at, viewed_at, project:projects(id, name, client:clients(name, logo_color, logo_letter))")
     .order("created_at", { ascending: false });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +21,7 @@ export default async function ProposalsPage() {
     created_at: p.created_at,
     sent_at: p.sent_at,
     viewed_at: p.viewed_at,
-    client: p.client ?? null,
+    project: p.project ?? null,
   }));
 
   return (

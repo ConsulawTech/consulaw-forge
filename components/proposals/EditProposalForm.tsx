@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/Button";
 import { updateProposalAction } from "@/app/actions/proposals";
 import { slugify } from "@/lib/utils";
 
-interface Client {
+interface Project {
   id: string;
   name: string;
-  email: string | null;
+  clientName: string | null;
 }
 
 interface ProposalData {
@@ -17,16 +17,16 @@ interface ProposalData {
   title: string;
   slug: string;
   html: string;
-  client_id: string | null;
+  project_id: string | null;
   recipient_email: string | null;
 }
 
 export function EditProposalForm({
   proposal,
-  clients,
+  projects,
 }: {
   proposal: ProposalData;
-  clients: Client[];
+  projects: Project[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(proposal.title);
@@ -34,7 +34,7 @@ export function EditProposalForm({
   const [slugEdited, setSlugEdited] = useState(true); // treat existing slug as manually set
   const [newHtml, setNewHtml] = useState("");
   const [fileName, setFileName] = useState("");
-  const [clientId, setClientId] = useState(proposal.client_id ?? "");
+  const [projectId, setProjectId] = useState(proposal.project_id ?? "");
   const [recipientEmail, setRecipientEmail] = useState(proposal.recipient_email ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -81,7 +81,7 @@ export function EditProposalForm({
     fd.append("title", title);
     fd.append("slug", slug);
     if (newHtml) fd.append("html", newHtml);
-    if (clientId) fd.append("client_id", clientId);
+    if (projectId) fd.append("project_id", projectId);
     if (recipientEmail) fd.append("recipient_email", recipientEmail);
     const result = await updateProposalAction(proposal.id, fd);
     setLoading(false);
@@ -135,16 +135,16 @@ export function EditProposalForm({
         </div>
       </div>
 
-      {/* Client */}
+      {/* Project */}
       <div className="flex flex-col gap-1.5">
         <label className="text-[12.5px] font-semibold text-[#0f172a]">
-          Linked Client <span className="text-[#94a3b8] font-normal">(optional)</span>
+          Linked Project <span className="text-[#94a3b8] font-normal">(optional)</span>
         </label>
-        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={inputCls}>
-          <option value="">— No client —</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}{c.email ? ` · ${c.email}` : " · no email"}
+        <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={inputCls}>
+          <option value="">— No project —</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}{p.clientName ? ` · ${p.clientName}` : ""}
             </option>
           ))}
         </select>

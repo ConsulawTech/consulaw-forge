@@ -14,7 +14,7 @@ export async function createProposalAction(formData: FormData): Promise<SimpleRe
   const title = (formData.get("title") as string | null)?.trim();
   const slug = (formData.get("slug") as string | null)?.trim();
   const html = (formData.get("html") as string | null)?.trim();
-  const clientId = (formData.get("client_id") as string | null)?.trim() || null;
+  const projectId = (formData.get("project_id") as string | null)?.trim() || null;
   const recipientEmail = (formData.get("recipient_email") as string | null)?.trim() || null;
 
   if (!title || !slug || !html) {
@@ -28,7 +28,7 @@ export async function createProposalAction(formData: FormData): Promise<SimpleRe
   const supabase = await createClient() as any;
   const { error } = await supabase
     .from("proposals")
-    .insert({ title, slug, html, client_id: clientId, recipient_email: recipientEmail, status: "draft" });
+    .insert({ title, slug, html, project_id: projectId, recipient_email: recipientEmail, status: "draft" });
 
   if (error) {
     if (error.code === "23505") {
@@ -53,7 +53,7 @@ export async function sendProposalAction(proposalId: string, email: string): Pro
 
   const { data: proposal, error } = await supabase
     .from("proposals")
-    .select("id, title, slug, client:clients(name)")
+    .select("id, title, slug, project:projects(name, client:clients(name))")
     .eq("id", proposalId)
     .single();
 
@@ -64,8 +64,8 @@ export async function sendProposalAction(proposalId: string, email: string): Pro
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://forge.consulawtech.com";
   const proposalUrl = `${appUrl}/${proposal.slug}`;
 
-  // Use the client name if linked, otherwise address generically
-  const clientName = proposal.client?.name ?? "there";
+  // Use the client name via project if linked, otherwise address generically
+  const clientName = (proposal.project as any)?.client?.name ?? (proposal.project as any)?.name ?? "there";
 
   const html = proposalEmail({
     clientName,
@@ -102,7 +102,7 @@ export async function updateProposalAction(proposalId: string, formData: FormDat
   const title = (formData.get("title") as string | null)?.trim();
   const slug = (formData.get("slug") as string | null)?.trim();
   const html = (formData.get("html") as string | null)?.trim();
-  const clientId = (formData.get("client_id") as string | null)?.trim() || null;
+  const projectId = (formData.get("project_id") as string | null)?.trim() || null;
   const recipientEmail = (formData.get("recipient_email") as string | null)?.trim() || null;
 
   if (!title || !slug) {
@@ -113,7 +113,7 @@ export async function updateProposalAction(proposalId: string, formData: FormDat
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updates: any = { title, slug, client_id: clientId, recipient_email: recipientEmail };
+  const updates: any = { title, slug, project_id: projectId, recipient_email: recipientEmail };
   // Only replace HTML if a new one was provided
   if (html) updates.html = html;
 

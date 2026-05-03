@@ -17,9 +17,9 @@ export default async function InvoicesPage() {
       .from("invoices")
       .select("*")
       .order("created_at", { ascending: false }),
-    supabase
+    (supabase as any)
       .from("proposals")
-      .select("id, title, slug, recipient_email, client:clients(name), status")
+      .select("id, title, slug, recipient_email, project:projects(name, client:clients(name)), status")
       .order("created_at", { ascending: false }),
     // Latest submission per proposal for pre-populating invoice items
     (supabase as any)
@@ -45,7 +45,7 @@ export default async function InvoicesPage() {
     id: p.id,
     title: p.title,
     slug: p.slug,
-    clientName: p.client?.name ?? "Client",
+    clientName: p.project?.client?.name ?? p.project?.name ?? "Client",
     recipientEmail: p.recipient_email ?? "",
     submissionTemplate: submissionByProposal[p.id]?.selected_template ?? null,
     submissionFeatures: submissionByProposal[p.id]?.selected_features ?? [],

@@ -6,15 +6,15 @@ export default async function NewProposalPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any;
   const { data: raw } = await supabase
-    .from("clients")
-    .select("id, name, email")
+    .from("projects")
+    .select("id, name, client:clients(name)")
     .order("name");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const clients = (raw ?? []).map((c: any) => ({
-    id: c.id,
-    name: c.name,
-    email: c.email ?? null,
+  const projects = (raw ?? []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    clientName: p.client?.name ?? null,
   }));
 
   return (
@@ -28,7 +28,7 @@ export default async function NewProposalPage() {
               Upload or paste a full HTML document to create a shareable client proposal.
             </p>
           </div>
-          <CreateProposalForm clients={clients} />
+          <CreateProposalForm projects={projects} />
         </div>
       </div>
     </div>

@@ -6,20 +6,20 @@ import { Button } from "@/components/ui/Button";
 import { createProposalAction } from "@/app/actions/proposals";
 import { slugify } from "@/lib/utils";
 
-interface Client {
+interface Project {
   id: string;
   name: string;
-  email: string | null;
+  clientName: string | null;
 }
 
-export function CreateProposalForm({ clients }: { clients: Client[] }) {
+export function CreateProposalForm({ projects }: { projects: Project[] }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
   const [html, setHtml] = useState("");
   const [fileName, setFileName] = useState("");
-  const [clientId, setClientId] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -70,7 +70,7 @@ export function CreateProposalForm({ clients }: { clients: Client[] }) {
     fd.append("title", title);
     fd.append("slug", slug);
     fd.append("html", html);
-    if (clientId) fd.append("client_id", clientId);
+    if (projectId) fd.append("project_id", projectId);
     if (recipientEmail) fd.append("recipient_email", recipientEmail);
     const result = await createProposalAction(fd);
     setLoading(false);
@@ -127,22 +127,21 @@ export function CreateProposalForm({ clients }: { clients: Client[] }) {
         </div>
       </div>
 
-      {/* Client */}
+      {/* Project */}
       <div className="flex flex-col gap-1.5">
         <label className="text-[12.5px] font-semibold text-[#0f172a]">
-          Link to Client{" "}
-          <span className="text-[#94a3b8] font-normal">(optional — required to send email)</span>
+          Link to Project{" "}
+          <span className="text-[#94a3b8] font-normal">(optional)</span>
         </label>
         <select
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
+          value={projectId}
+          onChange={(e) => setProjectId(e.target.value)}
           className={inputCls}
         >
-          <option value="">— No client —</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.email ? ` · ${c.email}` : " · no email"}
+          <option value="">— No project —</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}{p.clientName ? ` · ${p.clientName}` : ""}
             </option>
           ))}
         </select>

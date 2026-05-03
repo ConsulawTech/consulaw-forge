@@ -16,10 +16,10 @@ interface ProposalSummary {
   created_at: string;
   sent_at: string | null;
   viewed_at: string | null;
-  client: {
+  project: {
+    id: string;
     name: string;
-    logo_color?: string | null;
-    logo_letter?: string | null;
+    client: { name: string; logo_color?: string | null; logo_letter?: string | null } | null;
   } | null;
 }
 
@@ -60,15 +60,18 @@ function ProposalCard({ proposal }: { proposal: ProposalSummary }) {
           </span>
         </div>
 
-        {proposal.client && (
+        {proposal.project && (
           <div className="flex items-center gap-2">
             <div
               className="w-5 h-5 rounded-[5px] flex items-center justify-center text-[9px] font-black text-white flex-shrink-0"
-              style={{ background: proposal.client.logo_color ?? "#e50914" }}
+              style={{ background: proposal.project.client?.logo_color ?? "#1B3FEE" }}
             >
-              {proposal.client.logo_letter ?? proposal.client.name[0]}
+              {proposal.project.client?.logo_letter ?? proposal.project.name[0]}
             </div>
-            <span className="text-[12px] text-[#475569] font-medium truncate">{proposal.client.name}</span>
+            <span className="text-[12px] text-[#475569] font-medium truncate">
+              {proposal.project.name}
+              {proposal.project.client && ` · ${proposal.project.client.name}`}
+            </span>
           </div>
         )}
 

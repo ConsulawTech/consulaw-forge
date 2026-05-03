@@ -39,15 +39,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     ? ((await (supabase as any).from("task_dependencies").select("task_id, depends_on_task_id").in("task_id", allTaskIds)).data ?? [])
     : [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const clientId = (projectRaw as any).client_id as string | null;
-  const { data: proposalsRaw } = clientId
-    ? await supabase
-        .from("proposals")
-        .select("id, title, slug, status")
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: false })
-    : { data: [] };
+  const projectId = (projectRaw as any).id as string;
+  const { data: proposalsRaw } = await (supabase as any)
+    .from("proposals")
+    .select("id, title, slug, status")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const project = projectRaw as any;

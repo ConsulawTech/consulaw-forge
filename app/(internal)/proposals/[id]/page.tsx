@@ -28,7 +28,7 @@ export default async function ProposalDetailPage({
   const [{ data: p }, { data: submissionsRaw }] = await Promise.all([
     supabase
       .from("proposals")
-      .select("*, recipient_email, client:clients(id, name, email, logo_color, logo_letter)")
+      .select("*, recipient_email, project:projects(id, name, client:clients(id, name, logo_color, logo_letter))")
       .eq("id", id)
       .single(),
     supabase
@@ -117,13 +117,13 @@ export default async function ProposalDetailPage({
                 </Link>
                 <SendProposalButton
                   proposalId={p.id}
-                  defaultEmail={p.recipient_email ?? p.client?.email ?? ""}
+                  defaultEmail={p.recipient_email ?? ""}
                 />
                 <InvoiceButton
                   proposalId={p.id}
                   proposalTitle={p.title}
-                  clientName={p.client?.name ?? "Client"}
-                  recipientEmail={p.recipient_email ?? p.client?.email ?? ""}
+                  clientName={(p.project as any)?.client?.name ?? (p.project as any)?.name ?? "Client"}
+                  recipientEmail={p.recipient_email ?? ""}
                   submissionTemplate={latestTemplate}
                   submissionFeatures={allSubmissionFeatures}
                 />
@@ -217,30 +217,32 @@ export default async function ProposalDetailPage({
             </div>
           </div>
 
-          {/* Sidebar: linked client */}
+          {/* Sidebar: linked project */}
           <div className="glass rounded-2xl p-5 h-fit">
             <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#94a3b8] mb-3">
-              Linked Client
+              Linked Project
             </p>
-            {p.client ? (
+            {p.project ? (
               <Link
-                href={`/clients/${p.client.id}`}
+                href={`/projects/${(p.project as any).id}`}
                 className="flex items-center gap-3 hover:opacity-75 transition-opacity"
               >
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-black text-white flex-shrink-0"
-                  style={{ background: p.client.logo_color ?? "#e50914" }}
+                  style={{ background: (p.project as any).client?.logo_color ?? "#1B3FEE" }}
                 >
-                  {p.client.logo_letter ?? p.client.name[0]}
+                  {(p.project as any).client?.logo_letter ?? (p.project as any).name[0]}
                 </div>
                 <div>
-                  <div className="text-[14px] font-bold text-[#0f172a]">{p.client.name}</div>
-                  <div className="text-[12px] text-[#94a3b8]">{p.client.email ?? "No email"}</div>
+                  <div className="text-[14px] font-bold text-[#0f172a]">{(p.project as any).name}</div>
+                  {(p.project as any).client && (
+                    <div className="text-[12px] text-[#94a3b8]">{(p.project as any).client.name}</div>
+                  )}
                 </div>
               </Link>
             ) : (
               <p className="text-[13px] text-[#94a3b8]">
-                No client linked. You can still copy and share the URL manually.
+                No project linked. You can still copy and share the URL manually.
               </p>
             )}
           </div>

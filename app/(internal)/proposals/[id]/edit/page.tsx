@@ -13,25 +13,25 @@ export default async function EditProposalPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createClient() as any;
 
-  const [{ data: proposal }, { data: clientsRaw }] = await Promise.all([
+  const [{ data: proposal }, { data: projectsRaw }] = await Promise.all([
     supabase
       .from("proposals")
-      .select("id, title, slug, html, client_id, recipient_email")
+      .select("id, title, slug, html, project_id, recipient_email")
       .eq("id", id)
       .single(),
     supabase
-      .from("clients")
-      .select("id, name, email")
+      .from("projects")
+      .select("id, name, client:clients(name)")
       .order("name"),
   ]);
 
   if (!proposal) notFound();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const clients = (clientsRaw ?? []).map((c: any) => ({
-    id: c.id,
-    name: c.name,
-    email: c.email ?? null,
+  const projects = (projectsRaw ?? []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    clientName: p.client?.name ?? null,
   }));
 
   return (
@@ -54,7 +54,7 @@ export default async function EditProposalPage({
               Upload a new HTML file to replace the content, or leave it blank to keep the current one.
             </p>
           </div>
-          <EditProposalForm proposal={proposal} clients={clients} />
+          <EditProposalForm proposal={proposal} projects={projects} />
         </div>
       </div>
     </div>
