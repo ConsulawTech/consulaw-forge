@@ -75,15 +75,8 @@ export async function GET(
     `/api/proposals/${slug}/submit`
   );
 
-  // Fire-and-forget: track view without blocking the response
-  void admin
-    .from("proposals")
-    .update({
-      view_count: (proposal.view_count ?? 0) + 1,
-      viewed_at: new Date().toISOString(),
-      status: proposal.status !== "draft" ? "viewed" : "draft",
-    })
-    .eq("id", proposal.id);
+  // Atomic increment via DB function — avoids race conditions from concurrent views
+  void admin.rpc("increment_proposal_view", { p_id: proposal.id });
 
   return new NextResponse(servedHtml, {
     status: 200,
