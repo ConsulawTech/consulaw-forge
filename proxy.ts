@@ -1,7 +1,25 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Known app path segments — never treat these as proposal slugs
+const RESERVED = new Set([
+  "dashboard", "clients", "projects", "tasks", "checkpoints", "messages",
+  "timeline", "settings", "proposals", "portal", "login", "api", "_next", "favicon.ico",
+]);
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const segments = pathname.split("/").filter(Boolean);
+
+  // Single root-level segment that isn't a known app path → serve as a public proposal
+  if (
+    segments.length === 1 &&
+    !RESERVED.has(segments[0]) &&
+    /^[a-z0-9][a-z0-9-]*$/.test(segments[0])
+  ) {
+    return NextResponse.rewrite(new URL(`/api/p/${segments[0]}`, request.url));
+  }
+
   // If env vars aren't set, allow the request through so pages can handle auth
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.next();
@@ -33,8 +51,6 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   // Public routes — allow unauthenticated
   if (pathname.startsWith("/login")) {
