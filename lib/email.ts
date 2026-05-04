@@ -1,19 +1,34 @@
 import { Resend } from "resend";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM = process.env.RESEND_FROM ?? "Consulaw Forge <no-reply@consulawtech.com>";
+
+// Use a friendly From address — "no-reply" / "noreply" is a spam trigger.
+// This should match the domain you verified in Resend.
+const FROM = process.env.RESEND_FROM ?? "Consulaw Forge <forge@consulawtech.com>";
+
+// Reply-to address so replies go somewhere monitored instead of bouncing.
+const REPLY_TO = process.env.RESEND_REPLY_TO ?? "forge@consulawtech.com";
 
 function htmlToText(html: string): string {
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<li[^>]*>/gi, "• ")
     .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+/g, " ")
     .trim();
+}
+
+function extractDomain(fromHeader: string): string {
+  const match = fromHeader.match(/@([^>\s]+)/);
+  return match ? match[1] : "consulawtech.com";
 }
 
 export async function sendEmail({
@@ -21,28 +36,41 @@ export async function sendEmail({
   subject,
   html,
   text,
+  tags,
 }: {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  tags?: { name: string; value: string }[];
 }) {
   if (!resend) return { ok: false, reason: "no_api_key" };
+
   const plainText = text ?? htmlToText(html);
-  const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@consulawtech.com>`;
+  const domain = extractDomain(FROM);
+  const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@${domain}>`;
+  const now = new Date().toUTCString();
+
   const { error } = await resend.emails.send({
     from: FROM,
     to,
+    replyTo: REPLY_TO,
     subject,
     html,
     text: plainText,
+    tags,
     headers: {
       "Message-ID": messageId,
+      Date: now,
       "X-Mailer": "ConsulawForge/1.0",
       "X-Priority": "3",
       "MIME-Version": "1.0",
+      "X-Auto-Response-Suppress": "OOF, AutoReply",
+      "List-Unsubscribe": `<mailto:unsubscribe@${domain}?subject=unsubscribe>`,
+      Precedence: "high", // transactional / time-sensitive
     },
   });
+
   if (error) return { ok: false, reason: error.message };
   return { ok: true };
 }

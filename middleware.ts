@@ -7,7 +7,7 @@ const RESERVED = new Set([
   "timeline", "settings", "proposals", "invoices", "portal", "login", "api", "_next", "favicon.ico",
 ]);
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const segments = pathname.split("/").filter(Boolean);
 
